@@ -1,29 +1,18 @@
 import os
 import json
-import time
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 from pypdf import PdfReader
+from ai_client import generate_ai_completion, has_valid_api_key
 
-# Load environment variables from the .env file
 load_dotenv()
-
-# Initialize the Gemini API client
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key or api_key == "your_api_key_here":
-    print("WARNING: Please set a valid GEMINI_API_KEY in your .env file.")
-    client = None
-else:
-    client = genai.Client(api_key=api_key)
 
 def extract_resume_info(text=None, pdf_path=None):
     """
     Extracts skills, project names, and technologies from a resume.
-    Accepts raw text, a path to a PDF, or both.
+    Accepts raw text, a path to a PDF, or both. Uses Gemini with Grok failover.
     """
-    if not client:
-        print("Gemini Client not initialized due to missing API key.")
+    if not has_valid_api_key():
+        print("AI Client not initialized due to missing API keys.")
         return None
 
     if not text and not pdf_path:
@@ -31,7 +20,6 @@ def extract_resume_info(text=None, pdf_path=None):
 
     resume_content = text if text else ""
 
-    # If a PDF path is provided, extract its text and append/use it
     if pdf_path:
         try:
             reader = PdfReader(pdf_path)
@@ -47,7 +35,6 @@ def extract_resume_info(text=None, pdf_path=None):
         print("No content could be extracted from the provided inputs.")
         return None
 
-    # Prompt forcing the model to return a structured JSON response
     prompt = f"""
     You are an expert technical recruiter and resume parser. 
     Analyze the following resume text and extract the applicant's skills, project names, and technologies mentioned.
@@ -63,42 +50,19 @@ def extract_resume_info(text=None, pdf_path=None):
     {resume_content}
     """
 
-    max_retries = 6
-    for attempt in range(max_retries):
-        try:
-            # Use a modern Gemini model via the new SDK
-            response = client.models.generate_content(
-                model='gemini-flash-latest',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                )
-            )
-            
-            return json.loads(response.text)
-        
-        except Exception as e:
-            error_str = str(e)
-            if "503" in error_str or "UNAVAILABLE" in error_str:
-                if attempt < max_retries - 1:
-                    wait_time = 2 ** (attempt + 1)  # 2s, 4s, 8s, 16s, 32s...
-                    print(f"API is currently busy (503). Retrying in {wait_time} seconds (Attempt {attempt + 1}/{max_retries})...")
-                    time.sleep(wait_time)
-                else:
-                    print(f"Error: API is persistently unavailable after {max_retries} attempts.")
-                    return None
-            else:
-                print(f"Error during Gemini API call or JSON parsing: {e}")
-                return None
+    try:
+        return generate_ai_completion(prompt, json_mode=True)
+    except Exception as e:
+        print(f"Error during AI resume extraction: {e}")
+        return None
 
 if __name__ == "__main__":
-    # Quick test to demonstrate functionality
     sample_text = (
-        "Experienced Backend Developer. "
-        "Led the development of the 'E-Commerce Analytics Platform' using Python, Django, and PostgreSQL. "
-        "Proficient in Cloud Architecture, Agile Methodologies, and Team Leadership. "
-        "Also built 'ChatterBox', a real-time chat app utilizing Node.js, Socket.io, and Redis. "
-        "Familiar with Docker and AWS."
+        "Mohd Mehraj. CSE student, solo AI-product builder. Business development intern (built outbound sales "
+        "from scratch, LinkedIn prospecting, 15-20% conversion to discovery calls). Built two Shopify stores "
+        "end-to-end (Mazami, Sonali Jain) using AI-assisted tools, both lifting conversions/engagement ~40%. "
+        "Built 'The Signal', a solo RSS-to-LLM content curation app using Gemini Flash API. "
+        "Skills: Claude Code, Antigravity, Shopify, WordPress, LinkedIn Sales Navigator."
     )
     
     print("Testing extraction with sample text...")

@@ -1,20 +1,16 @@
 import os
 import json
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+from ai_client import generate_ai_completion, has_valid_api_key
+import db
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-# A secret key is needed to securely store data in the Flask session between pages
+# Secret key for Flask session storage
 app.secret_key = "super_secret_development_key"
-
-# Initialize the Gemini API client
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key) if api_key and api_key != "your_api_key_here" else None
 
 @app.route('/')
 def home():
@@ -23,18 +19,17 @@ def home():
 
 @app.route('/process_resume', methods=['POST'])
 def process_resume():
-    """Handle the resume submission, extract data with Gemini, and save to session."""
+    """Handle resume submission, extract data using Gemini/Grok failover, and save to session."""
     resume_text = request.form.get('resume_text', '')
     
     if not resume_text.strip():
         flash("Please paste your resume text before continuing.")
         return redirect(url_for('home'))
         
-    if not client:
-        flash("Gemini API key not configured properly in .env.")
+    if not has_valid_api_key():
+        flash("No valid API key configured. Please set GEMINI_API_KEY or GROK_API_KEY in your .env file.")
         return redirect(url_for('home'))
     
-    # Prompt instructing Gemini to extract specific data into JSON format
     prompt = f"""
     Analyze the following resume text and extract the applicant's skills, project names, and technologies.
     Return the result strictly as a JSON object with this exact structure:
@@ -49,19 +44,14 @@ def process_resume():
     """
     
     try:
-        response = client.models.generate_content(
-            model='gemini-flash-lite-latest',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            )
-        )
-        extracted_data = json.loads(response.text)
+        extracted_data = generate_ai_completion(prompt, json_mode=True)
+        if not isinstance(extracted_data, dict):
+            extracted_data = {"skills": [], "projects": [], "technologies": []}
         session['resume_data'] = extracted_data
         return redirect(url_for('setup_interview'))
     
     except Exception as e:
-        flash("Oops! The AI is a bit busy and had trouble parsing your resume. Please try again.")
+        flash(f"Error processing resume with AI: {str(e)}")
         print(f"Error: {str(e)}")
         return redirect(url_for('home'))
 
@@ -74,7 +64,7 @@ def setup_interview():
 
 @app.route('/save_setup', methods=['POST'])
 def save_setup():
-    """Save the selected interview type and role to the session."""
+    """Save selected interview type and role to session."""
     interview_type = request.form.get('interview_type')
     role = request.form.get('role')
     
@@ -88,7 +78,7 @@ def save_setup():
 
 @app.route('/generate_questions')
 def generate_questions():
-    """Step 4: Generate interview questions using Gemini."""
+    """Step 4: Generate interview questions and initialize SQLite session."""
     resume_data = session.get('resume_data')
     interview_type = session.get('interview_type')
     role = session.get('role')
@@ -96,9 +86,18 @@ def generate_questions():
     if not resume_data or not interview_type or not role:
         return redirect(url_for('home'))
         
-    if not client:
-        flash("Gemini API key not configured.")
+    if not has_valid_api_key():
+        flash("No valid API key configured. Please set GEMINI_API_KEY or GROK_API_KEY in your .env file.")
         return redirect(url_for('home'))
+
+    ref_path = os.path.join(os.path.dirname(__file__), 'Mock-Interview-Master-Reference.md')
+    if not os.path.exists(ref_path):
+        ref_path = os.path.join(os.path.dirname(__file__), 'rubric.md')
+    try:
+        with open(ref_path, 'r', encoding='utf-8') as f:
+            master_ref_text = f.read()
+    except FileNotFoundError:
+        master_ref_text = ""
 
     prompt = f"""
     You are an expert technical recruiter and interviewer.
@@ -106,41 +105,50 @@ def generate_questions():
     The interview type is {interview_type}.
 
     Here is the candidate's extracted resume data:
-    {json.dumps(resume_data)}
+    {json.dumps(resume_data, indent=2)}
 
-    Guidelines:
-    - If the resume data has specific skills and projects, make at least half the questions highly specific to their actual experience.
-    - If the resume data is sparse, rely more on standard, high-quality questions for this role and interview type.
-    - Ensure questions sound natural, conversational, and challenging but fair.
-    - Do not include answers, explanations, or conversational filler.
+    QUESTION GENERATION GUIDELINES (Refer to Part 2 & Part 3 of the Master Reference Doc below):
+    1. Replicate the style, tone, and difficulty of questions in PART 2 (INTERVIEW QUESTION REFERENCE) for {role}.
+    2. Follow the principles in Part 2, Part A:
+       - Specific enough to test real understanding, not just memory.
+       - Tied to what the candidate actually claims in their resume (ask candidates to explain listed projects from scratch or rate their familiarity with tools/technologies listed).
+       - Layered with natural follow-ups where appropriate.
+       - Balanced mix across: Technical/knowledge questions, Problem-solving questions, and Behavioral questions.
+    3. Use PART 3 (RESUME -> QUESTION EXAMPLES) as few-shot examples of how to craft resume-tied questions that probe deeply into specific projects, metrics, and technical decisions.
+    4. Generate NEW questions in a similar authentic style tailored specifically to the candidate's resume, rather than copying fixed questions directly.
 
     Return the result STRICTLY as a JSON array of strings. 
-    Example format: ["Tell me about a time you used Python?", "How does a database index work?"]
+    Example format: ["Walk me through how you built project X?", "How would you handle scenario Y?"]
+
+    <MASTER_REFERENCE_DOC>
+    {master_ref_text}
+    </MASTER_REFERENCE_DOC>
     """
 
     try:
-        response = client.models.generate_content(
-            model='gemini-flash-lite-latest',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            )
-        )
-        questions = json.loads(response.text)
-        session['questions'] = questions
+        questions = generate_ai_completion(prompt, json_mode=True)
+        if not isinstance(questions, list):
+            questions = [str(questions)]
+        
+        # Persist session and questions in SQLite upfront to keep cookie payload light (<100 bytes)
+        db_session_id = db.create_session(interview_type, role, resume_data, questions)
+        session['db_session_id'] = db_session_id
         session['current_q_index'] = 0
-        session['answers'] = [] 
         return redirect(url_for('interview'))
         
     except Exception as e:
-        flash("Oops! The AI took too long to generate questions. Please try again.")
+        flash(f"Error generating questions: {str(e)}")
         print(f"Error: {str(e)}")
         return redirect(url_for('setup_interview'))
 
 @app.route('/interview')
 def interview():
     """Step 5: Present one question at a time for the user to answer."""
-    questions = session.get('questions', [])
+    db_session_id = session.get('db_session_id')
+    if not db_session_id:
+        return redirect(url_for('home'))
+
+    interview_type, role, resume_data, questions = db.get_session(db_session_id)
     current_index = session.get('current_q_index', 0)
     
     if not questions:
@@ -150,66 +158,109 @@ def interview():
         return redirect(url_for('process_grades'))
         
     current_question = questions[current_index]
+    existing_answer = db.get_answer(db_session_id, current_index)
+
     return render_template('interview.html', 
                            question=current_question, 
                            current=current_index + 1, 
-                           total=len(questions))
+                           total=len(questions),
+                           existing_answer=existing_answer)
 
 @app.route('/submit_answer', methods=['POST'])
 def submit_answer():
-    """Save the user's typed answer and move to the next question."""
-    answer_text = request.form.get('answer', '')
-    answers = session.get('answers', [])
-    answers.append(answer_text)
-    session['answers'] = answers
-    session['current_q_index'] = session.get('current_q_index', 0) + 1
-    return redirect(url_for('interview'))
+    """Save user's typed answer synchronously to SQLite database and move to next question."""
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+    db_session_id = session.get('db_session_id')
+    
+    if not db_session_id:
+        err_msg = "Session lost. Please restart your interview."
+        if is_ajax:
+            return jsonify({'success': False, 'error': err_msg}), 400
+        flash(err_msg)
+        return redirect(url_for('home'))
+
+    interview_type, role, resume_data, questions = db.get_session(db_session_id)
+    current_index = session.get('current_q_index', 0)
+
+    if current_index >= len(questions):
+        next_url = url_for('process_grades')
+        if is_ajax:
+            return jsonify({'success': True, 'redirect': next_url})
+        return redirect(next_url)
+
+    answer_text = request.form.get('answer', '').strip()
+    if not answer_text:
+        err_msg = "Answer cannot be empty."
+        if is_ajax:
+            return jsonify({'success': False, 'error': err_msg}), 400
+        flash(err_msg)
+        return redirect(url_for('interview'))
+
+    current_question = questions[current_index]
+
+    try:
+        # Synchronously persist answer in SQLite BEFORE responding to client
+        db.save_answer(db_session_id, current_index, current_question, answer_text)
+        
+        # Advance index
+        next_index = current_index + 1
+        session['current_q_index'] = next_index
+
+        next_url = url_for('interview') if next_index < len(questions) else url_for('process_grades')
+
+        if is_ajax:
+            return jsonify({'success': True, 'redirect': next_url})
+        return redirect(next_url)
+
+    except Exception as e:
+        err_msg = f"Database save error: {str(e)}"
+        print(f"[App Error] {err_msg}")
+        if is_ajax:
+            return jsonify({'success': False, 'error': err_msg}), 500
+        flash(err_msg)
+        return render_template('interview.html', 
+                               question=current_question, 
+                               current=current_index + 1, 
+                               total=len(questions),
+                               existing_answer=answer_text)
 
 @app.route('/process_grades')
 def process_grades():
-    """Step 7 & 8: Grade all answers via Gemini and save the whole session to SQLite."""
-    questions = session.get('questions', [])
-    answers = session.get('answers', [])
-    role = session.get('role')
-    interview_type = session.get('interview_type')
-    resume_data = session.get('resume_data')
-    
-    if not questions or not answers:
+    """Step 7 & 8: Grade all recorded answers via AI and save grades in SQLite."""
+    db_session_id = session.get('db_session_id')
+    if not db_session_id:
         return redirect(url_for('home'))
         
-    import db
-    db_session_id = db.create_session(interview_type, role, resume_data)
+    interview_type, role, resume_data, questions = db.get_session(db_session_id)
+    qa_list = db.get_qa_records(db_session_id)
     
-    from grader import grade_answer
-    for i in range(len(questions)):
-        q = questions[i]
-        a = answers[i] if i < len(answers) else ""
-        grade = grade_answer(q, a, role, interview_type)
-        db.add_qa_record(
-            session_id=db_session_id,
-            question=q,
-            answer=a,
-            score=grade.get('score', 0),
-            feedback=grade.get('feedback', ''),
-            improvement_tip=grade.get('improvement_tip', '')
-        )
+    if not qa_list:
+        flash("No answers were recorded to grade.")
+        return redirect(url_for('home'))
         
-    session['db_session_id'] = db_session_id
-    session.pop('questions', None)
-    session.pop('answers', None)
-    session.pop('current_q_index', None)
-    
+    from grader import grade_answer
+    for qa in qa_list:
+        # Grade only if not already graded
+        if qa['score'] == 0 and not qa['feedback']:
+            grade = grade_answer(qa['question'], qa['answer'], role, interview_type)
+            db.update_qa_grade(
+                session_id=db_session_id,
+                q_index=qa['q_index'],
+                score=grade.get('score', 0),
+                feedback=grade.get('feedback', ''),
+                improvement_tip=grade.get('improvement_tip', '')
+            )
+            
     return redirect(url_for('report_card'))
 
 @app.route('/report_card')
 def report_card():
-    """Step 9: Show the final report with scores and feedback for each Q&A."""
+    """Step 9: Show final report with scores and feedback for each Q&A."""
     db_session_id = session.get('db_session_id')
     if not db_session_id:
         return redirect(url_for('home'))
     
-    import db
-    interview_type, role, resume_data = db.get_session(db_session_id)
+    interview_type, role, resume_data, _ = db.get_session(db_session_id)
     qa_list = db.get_qa_records(db_session_id)
     
     total_score = sum([qa['score'] for qa in qa_list])
@@ -223,8 +274,5 @@ def report_card():
                            overall_score=overall)
 
 if __name__ == '__main__':
-    import db
     db.init_db()
     app.run(debug=True)
-
-

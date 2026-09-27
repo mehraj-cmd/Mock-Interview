@@ -6,22 +6,71 @@
     <title>AI Mock Interview App</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
-        function showLoading(form) {
-            form.querySelector('#submit-btn').style.display = 'none';
-            form.querySelector('#loading-ui').style.display = 'block';
+        async function submitAnswer(event) {
+            event.preventDefault();
+            const form = event.target;
+            const submitBtn = document.getElementById('submit-btn');
+            const loadingUi = document.getElementById('loading-ui');
+            const errorContainer = document.getElementById('error-container');
+            const textarea = form.querySelector('textarea[name="answer"]');
+
+            if (!textarea.value.trim()) {
+                errorContainer.textContent = "⚠️ Please type your answer before proceeding.";
+                errorContainer.style.display = "block";
+                return;
+            }
+
+            errorContainer.style.display = "none";
+            submitBtn.style.display = "none";
+            loadingUi.style.display = "block";
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch('/submit_answer', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    window.location.href = data.redirect;
+                } else {
+                    throw new Error(data.error || 'Server reported failure while saving your answer.');
+                }
+            } catch (err) {
+                loadingUi.style.display = "none";
+                submitBtn.style.display = "inline-block";
+                errorContainer.textContent = "❌ Failed to save answer: " + err.message + " Please click Next Question to retry.";
+                errorContainer.style.display = "block";
+            }
         }
     </script>
 </head>
 <body>
     <div class="container" style="max-width: 800px;">
+        <!-- Display Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message" style="margin-bottom: 20px;">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div id="error-container" class="flash-message" style="display: none; background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; margin-bottom: 20px;"></div>
+
         <p style="color: #6c757d; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
             Question {{ current }} of {{ total }}
         </p>
         
         <h2 style="margin-top: 5px; color: #0056b3; margin-bottom: 25px;">{{ question }}</h2>
         
-        <form action="/submit_answer" method="POST" onsubmit="showLoading(this)">
-            <textarea name="answer" rows="10" placeholder="Type your answer here..." required autofocus></textarea>
+        <form action="/submit_answer" method="POST" onsubmit="submitAnswer(event)">
+            <textarea name="answer" rows="10" placeholder="Type your answer here..." required autofocus>{{ existing_answer if existing_answer else '' }}</textarea>
             <br>
             <button type="submit" id="submit-btn">
                 {% if current == total %}
@@ -31,9 +80,9 @@
                 {% endif %}
             </button>
             
-            <div id="loading-ui" class="loading-text">
+            <div id="loading-ui" class="loading-text" style="display: none;">
                 {% if current == total %}
-                    Grading your interview... this might take a minute! 
+                    Saving answer & grading your interview... this might take a moment! 
                 {% else %}
                     Saving answer...
                 {% endif %}
