@@ -1,17 +1,16 @@
 import os
 import json
 from dotenv import load_dotenv
-from pypdf import PdfReader
 from ai_client import generate_ai_completion, has_valid_api_key
 
 load_dotenv()
 
-def extract_resume_info(text=None, pdf_path=None):
+def extract_resume_info(text=None, pdf_path=None, api_key=None):
     """
     Extracts skills, project names, and technologies from a resume.
     Accepts raw text, a path to a PDF, or both. Uses Gemini with Grok failover.
     """
-    if not has_valid_api_key():
+    if not has_valid_api_key(api_key):
         print("AI Client not initialized due to missing API keys.")
         return None
 
@@ -22,11 +21,12 @@ def extract_resume_info(text=None, pdf_path=None):
 
     if pdf_path:
         try:
-            reader = PdfReader(pdf_path)
-            for page in reader.pages:
-                extracted_text = page.extract_text()
-                if extracted_text:
-                    resume_content += extracted_text + "\n"
+            import fitz
+            doc = fitz.open(pdf_path)
+            extracted_text = "\n".join(page.get_text() for page in doc)
+            doc.close()
+            if extracted_text:
+                resume_content += extracted_text + "\n"
         except Exception as e:
             print(f"Error reading PDF '{pdf_path}': {e}")
             return None
@@ -51,7 +51,7 @@ def extract_resume_info(text=None, pdf_path=None):
     """
 
     try:
-        return generate_ai_completion(prompt, json_mode=True)
+        return generate_ai_completion(prompt, json_mode=True, api_key=api_key)
     except Exception as e:
         print(f"Error during AI resume extraction: {e}")
         return None

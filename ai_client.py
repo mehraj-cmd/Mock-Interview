@@ -26,9 +26,9 @@ def clean_json_string(text: str) -> str:
         text = match.group(1).strip()
     return text
 
-def get_api_keys():
+def get_api_keys(custom_key: str = None):
     """Returns valid (gemini_key, grok_key) tuples or None for unconfigured keys."""
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    gemini_key = (custom_key or os.environ.get("GEMINI_API_KEY", "") or "").strip()
     if gemini_key.lower() in INVALID_KEY_PLACEHOLDERS:
         gemini_key = None
 
@@ -38,17 +38,17 @@ def get_api_keys():
 
     return gemini_key, grok_key
 
-def has_valid_api_key() -> bool:
+def has_valid_api_key(custom_key: str = None) -> bool:
     """Check if at least one AI API key (Gemini or Grok) is configured."""
-    gemini_key, grok_key = get_api_keys()
+    gemini_key, grok_key = get_api_keys(custom_key=custom_key)
     return bool(gemini_key or grok_key)
 
-def call_gemini(prompt: str, json_mode: bool = True) -> str:
+def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None) -> str:
     """Calls Gemini API via official google-genai SDK with model fallback."""
     from google import genai
     from google.genai import types
 
-    gemini_key, _ = get_api_keys()
+    gemini_key, _ = get_api_keys(custom_key=api_key)
     if not gemini_key:
         raise ValueError("Gemini API key is not configured or invalid.")
 
@@ -125,16 +125,16 @@ def call_grok(prompt: str, json_mode: bool = True) -> str:
 
     raise RuntimeError(f"All Grok models failed. Last error: {last_error}")
 
-def generate_ai_completion(prompt: str, json_mode: bool = True):
+def generate_ai_completion(prompt: str, json_mode: bool = True, api_key: str = None):
     """
     Executes AI completion with automatic failover:
-    1. Primary: Gemini (if configured)
+    1. Primary: Gemini (if configured or passed via api_key)
     2. Failover: Grok / xAI (if configured)
     If primary fails or key is missing, automatically falls back to secondary.
     Returns parsed JSON if json_mode=True, else returns raw string.
     """
     load_dotenv(override=True)
-    gemini_key, grok_key = get_api_keys()
+    gemini_key, grok_key = get_api_keys(custom_key=api_key)
 
     if not gemini_key and not grok_key:
         raise ValueError("No valid API key configured. Please set GEMINI_API_KEY or GROK_API_KEY in your .env file.")
@@ -145,7 +145,7 @@ def generate_ai_completion(prompt: str, json_mode: bool = True):
     if gemini_key:
         try:
             print("[AI Client] Requesting completion from Gemini...")
-            raw_text = call_gemini(prompt, json_mode=json_mode)
+            raw_text = call_gemini(prompt, json_mode=json_mode, api_key=gemini_key)
             if json_mode:
                 return json.loads(clean_json_string(raw_text))
             return raw_text
