@@ -23,17 +23,35 @@ def home():
 
 @app.route('/process_resume', methods=['POST'])
 def process_resume():
-    """Handle the resume submission, extract data with Gemini, and save to session."""
-    resume_text = request.form.get('resume_text', '')
-    
-    if not resume_text.strip():
-        flash("Please paste your resume text before continuing.")
+    """Handle resume submission via text paste OR PDF upload."""
+    resume_text = request.form.get('resume_text', '').strip()
+    pdf_file = request.files.get('resume_pdf')
+
+    # --- PDF Upload path ---
+    if pdf_file and pdf_file.filename.endswith('.pdf'):
+        try:
+            import fitz  # PyMuPDF
+            pdf_bytes = pdf_file.read()
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            extracted_pages = []
+            for page in doc:
+                extracted_pages.append(page.get_text())
+            resume_text = "\n".join(extracted_pages).strip()
+            doc.close()
+        except Exception as e:
+            flash("Could not read the PDF file. Please try a different file or paste your resume as text.")
+            print(f"PDF extraction error: {str(e)}")
+            return redirect(url_for('home'))
+
+    # --- Validate we have some text to work with ---
+    if not resume_text:
+        flash("Please either paste your resume text or upload a PDF file before continuing.")
         return redirect(url_for('home'))
-        
+
     if not client:
         flash("Gemini API key not configured properly in .env.")
         return redirect(url_for('home'))
-    
+
     # Prompt instructing Gemini to extract specific data into JSON format
     prompt = f"""
     Analyze the following resume text and extract the applicant's skills, project names, and technologies.
@@ -47,7 +65,7 @@ def process_resume():
     Resume Text:
     {resume_text}
     """
-    
+
     try:
         response = client.models.generate_content(
             model='gemini-flash-lite-latest',
@@ -59,11 +77,12 @@ def process_resume():
         extracted_data = json.loads(response.text)
         session['resume_data'] = extracted_data
         return redirect(url_for('setup_interview'))
-    
+
     except Exception as e:
         flash("Oops! The AI is a bit busy and had trouble parsing your resume. Please try again.")
         print(f"Error: {str(e)}")
         return redirect(url_for('home'))
+
 
 @app.route('/setup_interview')
 def setup_interview():

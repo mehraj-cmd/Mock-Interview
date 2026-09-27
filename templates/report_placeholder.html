@@ -3,60 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mock Interview App - Final Report</title>
+    <title>MockMaster AI — Report Card</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .report-container { max-width: 900px; margin: 40px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .score-box { background: #0056b3; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
-        .score-box h2 { margin: 0; font-size: 36px; }
-        .qa-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: left; }
-        .qa-card h3 { margin-top: 0; color: #333; font-size: 18px; }
-        .qa-answer { background: #f8f9fa; padding: 15px; border-left: 4px solid #ced4da; margin-bottom: 15px; font-family: monospace; white-space: pre-wrap; }
-        .qa-feedback { background: #e3f2fd; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
-        .qa-tip { background: #e8f5e9; padding: 15px; border-radius: 6px; }
-        .qa-score { font-weight: bold; color: #d63384; font-size: 18px; float: right; }
-    </style>
 </head>
-<body style="background-color: #f0f2f5;">
-    <div class="report-container">
-        <h1 style="text-align: center; color: #0056b3;">Interview Report Card</h1>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎯</div>
+            MockMaster AI
+        </a>
+        <span class="navbar-tag">Report</span>
+    </nav>
 
-        <div class="score-box">
-            <p style="margin: 0; text-transform: uppercase; letter-spacing: 1px;">Overall Score</p>
-            <h2>{{ overall_score }} / 10</h2>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-bottom: 30px; text-align: left;">
-            <div>
-                <strong>Interview Type:</strong> {{ interview_type }}<br>
-                <strong>Target Role:</strong> {{ role }}
-            </div>
-            <div style="text-align: right;">
-                <a href="{{ url_for('home') }}" style="background: #0056b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start New Interview</a>
-            </div>
-        </div>
-
-        <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px; text-align: left;">Question Breakdown</h2>
-        
-        {% for qa in qa_list %}
-        <div class="qa-card">
-            <h3><span style="color: #6c757d;">Q{{ loop.index }}:</span> {{ qa.question }} <span class="qa-score">{{ qa.score }} / 10</span></h3>
+    <div class="page-wrapper" style="align-items: flex-start;">
+        <div class="report-container">
             
-            <strong>Your Answer:</strong>
-            <div class="qa-answer">{{ qa.answer }}</div>
-            
-            <strong>Feedback:</strong>
-            <div class="qa-feedback">
-                {{ qa.feedback }}
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step-dot completed">✓</div>
+                <div class="step-line completed"></div>
+                <div class="step-dot completed">✓</div>
+                <div class="step-line completed"></div>
+                <div class="step-dot completed">✓</div>
+                <div class="step-line completed"></div>
+                <div class="step-dot active">4</div>
             </div>
-            
-            <strong>Improvement Tip:</strong>
-            <div class="qa-tip">
-                💡 {{ qa.tip }}
-            </div>
-        </div>
-        {% endfor %}
 
+            <h1 style="text-align: center; margin-bottom: 4px;">📊 Interview Report Card</h1>
+            <p class="subtitle" style="text-align: center;">Here's how you performed — review the AI feedback to sharpen your skills.</p>
+
+            <!-- Score Box -->
+            <div class="score-box">
+                <div class="score-label">Overall Score</div>
+                <div class="score-value">{{ overall_score }} <span class="score-max">/ 10</span></div>
+                
+                {% if overall_score >= 8.5 %}
+                    <div class="verdict-badge verdict-strong-hire">Strong Hire</div>
+                {% elif overall_score >= 7.0 %}
+                    <div class="verdict-badge verdict-hire">Hire</div>
+                {% elif overall_score >= 5.0 %}
+                    <div class="verdict-badge verdict-reservations">Needs Improvement</div>
+                {% elif overall_score >= 3.0 %}
+                    <div class="verdict-badge verdict-weak">Weak — Likely No Hire</div>
+                {% else %}
+                    <div class="verdict-badge verdict-no-hire">No Hire</div>
+                {% endif %}
+            </div>
+
+            <!-- Meta Info -->
+            <div class="meta-row">
+                <div class="meta-info">
+                    <div class="meta-label">Interview Type</div>
+                    <div class="meta-value">{{ interview_type }}</div>
+                </div>
+                <div class="meta-info">
+                    <div class="meta-label">Target Role</div>
+                    <div class="meta-value">{{ role }}</div>
+                </div>
+                <div class="meta-info">
+                    <div class="meta-label">Questions Answered</div>
+                    <div class="meta-value">{{ qa_list | length }}</div>
+                </div>
+            </div>
+
+            <!-- Q&A Breakdown -->
+            <h3 class="section-title">Question-by-Question Breakdown</h3>
+            
+            {% for qa in qa_list %}
+            <div class="qa-card">
+                <div class="qa-header">
+                    <div class="qa-question">
+                        <span class="q-num">Q{{ loop.index }}.</span> {{ qa.question }}
+                    </div>
+                    <div class="qa-score-badge">{{ qa.score }} / 10</div>
+                </div>
+                
+                <div class="qa-section-label">Your Answer</div>
+                <div class="qa-answer">{{ qa.answer }}</div>
+                
+                <div class="qa-section-label">AI Feedback</div>
+                <div class="qa-feedback">{{ qa.feedback }}</div>
+                
+                <div class="qa-section-label">How to Improve</div>
+                <div class="qa-tip"><span class="tip-icon">💡</span> {{ qa.tip }}</div>
+            </div>
+            {% endfor %}
+
+            <!-- Bottom Actions -->
+            <div style="text-align: center; margin-top: 36px;">
+                <a href="{{ url_for('home') }}" class="btn" style="text-decoration: none; display: inline-block;">
+                    🔄 Start a New Interview
+                </a>
+            </div>
+
+        </div>
     </div>
 </body>
 </html>
