@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <h1>Setup Complete! ✅</h1>
+        <p>This is a temporary placeholder to prove <strong>Step 3</strong> worked.</p>
+        <p>Here is all the data we have gathered in the session so far. In Step 4, we will pass all of this to Gemini to generate the actual interview questions!</p>
+        
+        <div class="data-box">
+            <h3 style="margin-top:0;">Interview Type:</h3>
+            <p>{{ interview_type }}</p>
+            
+            <h3>Target Role:</h3>
+            <p>{{ role }}</p>
+            
+            <h3>Resume Data:</h3>
+            <pre>{{ resume_data | tojson(indent=2) }}</pre>
+        </div>
+        <p><em>(In Step 4, we will replace this page with the first generated question.)</em></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <h1>Questions Generated! 🧠</h1>
+        <p>This is a temporary placeholder to prove <strong>Step 4</strong> worked.</p>
+        <p>Gemini successfully reviewed your resume, role, and interview type, and generated these customized questions for you:</p>
+        
+        <div class="data-box" style="text-align: left;">
+            <ol>
+                {% for question in questions %}
+                    <li style="margin-bottom: 15px; font-size: 16px;"><strong>{{ question }}</strong></li>
+                {% endfor %}
+            </ol>
+        </div>
+        
+        <p><em>(In Step 5, we will build the actual interview screen where you answer these one by one!)</em></p>
+    </div>
+</body>
+</html>

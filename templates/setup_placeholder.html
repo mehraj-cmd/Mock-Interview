@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <h1>Extraction Successful! 🎉</h1>
+        <p>This is a temporary placeholder screen to prove <strong>Step 2</strong> worked.</p>
+        <p>Below is the structured data we successfully extracted from your resume. We'll use this data later to generate your questions!</p>
+        
+        <div class="data-box">
+            <h3>Extracted Resume Data:</h3>
+            <pre>{{ data | tojson(indent=2) }}</pre>
+        </div>
+        
+        <p><em>(In Step 3, we will replace this page with the Interview Type & Role selection dropdowns.)</em></p>
+    </div>
+</body>
+</html>

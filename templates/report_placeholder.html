@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview App - Final Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .report-container { max-width: 900px; margin: 40px auto; padding: 30px; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .score-box { background: #0056b3; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
+        .score-box h2 { margin: 0; font-size: 36px; }
+        .qa-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 25px; text-align: left; }
+        .qa-card h3 { margin-top: 0; color: #333; font-size: 18px; }
+        .qa-answer { background: #f8f9fa; padding: 15px; border-left: 4px solid #ced4da; margin-bottom: 15px; font-family: monospace; white-space: pre-wrap; }
+        .qa-feedback { background: #e3f2fd; padding: 15px; border-radius: 6px; margin-bottom: 15px; }
+        .qa-tip { background: #e8f5e9; padding: 15px; border-radius: 6px; }
+        .qa-score { font-weight: bold; color: #d63384; font-size: 18px; float: right; }
+    </style>
+</head>
+<body style="background-color: #f0f2f5;">
+    <div class="report-container">
+        <h1 style="text-align: center; color: #0056b3;">Interview Report Card</h1>
+
+        <div class="score-box">
+            <p style="margin: 0; text-transform: uppercase; letter-spacing: 1px;">Overall Score</p>
+            <h2>{{ overall_score }} / 10</h2>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 30px; text-align: left;">
+            <div>
+                <strong>Interview Type:</strong> {{ interview_type }}<br>
+                <strong>Target Role:</strong> {{ role }}
+            </div>
+            <div style="text-align: right;">
+                <a href="{{ url_for('home') }}" style="background: #0056b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start New Interview</a>
+            </div>
+        </div>
+
+        <h2 style="border-bottom: 2px solid #eee; padding-bottom: 10px; text-align: left;">Question Breakdown</h2>
+        
+        {% for qa in qa_list %}
+        <div class="qa-card">
+            <h3><span style="color: #6c757d;">Q{{ loop.index }}:</span> {{ qa.question }} <span class="qa-score">{{ qa.score }} / 10</span></h3>
+            
+            <strong>Your Answer:</strong>
+            <div class="qa-answer">{{ qa.answer }}</div>
+            
+            <strong>Feedback:</strong>
+            <div class="qa-feedback">
+                {{ qa.feedback }}
+            </div>
+            
+            <strong>Improvement Tip:</strong>
+            <div class="qa-tip">
+                💡 {{ qa.tip }}
+            </div>
+        </div>
+        {% endfor %}
+
+    </div>
+</body>
+</html>

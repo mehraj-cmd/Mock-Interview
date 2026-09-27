@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function showLoading(form) {
+            form.querySelector('#submit-btn').style.display = 'none';
+            form.querySelector('#loading-ui').style.display = 'block';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        
+        <!-- Display Flash Error Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <h1>Step 1: Your Resume</h1>
+        <p>Paste your resume text below so the AI can personalize your interview questions.</p>
+        
+        <form action="/process_resume" method="POST" onsubmit="showLoading(this)">
+            <textarea name="resume_text" rows="12" placeholder="Paste your resume here..." required></textarea>
+            <br>
+            <button type="submit" id="submit-btn">Continue</button>
+            
+            <div id="loading-ui" class="loading-text">
+                Analyzing your resume... <div class="loader"></div>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

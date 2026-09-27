@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container" style="max-width: 800px;">
+        <h1>Interview Complete! 🏁</h1>
+        <p>This is a temporary placeholder to prove <strong>Step 5</strong> worked.</p>
+        <p>Below are your generated questions paired with the answers you provided. In Step 6, we will send these pairs to Gemini for professional grading and feedback!</p>
+        
+        {% for q, a in qa_pairs %}
+        <div class="data-box" style="text-align: left; background-color: #f8f9fa;">
+            <p style="color: #0056b3; font-weight: bold; margin-top: 0; font-size: 16px;">Q: {{ q }}</p>
+            <p style="margin-bottom: 0;"><strong>Your Answer:</strong><br>
+                <span style="color: #495057;">{{ a }}</span>
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
