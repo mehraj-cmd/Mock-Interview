@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from ai_client import generate_ai_completion, has_valid_api_key
 
 load_dotenv()
+db.init_db()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_secret_key_change_in_production")

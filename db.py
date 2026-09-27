@@ -57,23 +57,22 @@ def init_db():
     ''')
 
     # ── Migrations: safely add new columns if they don't already exist ────────
-    migrations = [
-        "ALTER TABLE sessions ADD COLUMN questions TEXT",
-        "ALTER TABLE sessions ADD COLUMN overall_score REAL DEFAULT 0",
-        "ALTER TABLE sessions ADD COLUMN user_id INTEGER",
-        "ALTER TABLE sessions ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN saved_resume TEXT",
-        "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        "ALTER TABLE users ADD COLUMN default_type TEXT",
-        "ALTER TABLE users ADD COLUMN default_role TEXT",
-        "ALTER TABLE users ADD COLUMN custom_api_key TEXT",
-        "ALTER TABLE qa_records ADD COLUMN q_index INTEGER DEFAULT 0",
-    ]
-    for sql in migrations:
-        try:
-            c.execute(sql)
-        except sqlite3.OperationalError:
-            pass  # Column already exists — safe to ignore
+    def add_col_if_missing(table, column, col_def):
+        c.execute(f"PRAGMA table_info({table})")
+        cols = [r[1] for r in c.fetchall()]
+        if column not in cols:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_def}")
+
+    add_col_if_missing("sessions", "questions", "TEXT")
+    add_col_if_missing("sessions", "overall_score", "REAL DEFAULT 0")
+    add_col_if_missing("sessions", "user_id", "INTEGER")
+    add_col_if_missing("sessions", "created_at", "TIMESTAMP")
+    add_col_if_missing("users", "saved_resume", "TEXT")
+    add_col_if_missing("users", "created_at", "TIMESTAMP")
+    add_col_if_missing("users", "default_type", "TEXT")
+    add_col_if_missing("users", "default_role", "TEXT")
+    add_col_if_missing("users", "custom_api_key", "TEXT")
+    add_col_if_missing("qa_records", "q_index", "INTEGER DEFAULT 0")
 
     conn.commit()
     conn.close()
