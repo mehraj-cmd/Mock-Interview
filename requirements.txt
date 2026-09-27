@@ -1,3 +1,6 @@
 Flask
 python-dotenv
 google-genai
+pymupdf
+flask-login
+werkzeug

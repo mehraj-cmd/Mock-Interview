@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mock Interview App</title>
+    <title>MockMaster AI — Interview</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         async function submitAnswer(event) {
@@ -15,14 +15,16 @@
             const textarea = form.querySelector('textarea[name="answer"]');
 
             if (!textarea.value.trim()) {
-                errorContainer.textContent = "⚠️ Please type your answer before proceeding.";
-                errorContainer.style.display = "block";
+                if (errorContainer) {
+                    errorContainer.textContent = "⚠️ Please type your answer before proceeding.";
+                    errorContainer.style.display = "block";
+                }
                 return;
             }
 
-            errorContainer.style.display = "none";
+            if (errorContainer) errorContainer.style.display = "none";
             submitBtn.style.display = "none";
-            loadingUi.style.display = "block";
+            loadingUi.style.display = "flex";
 
             try {
                 const formData = new FormData(form);
@@ -44,51 +46,70 @@
             } catch (err) {
                 loadingUi.style.display = "none";
                 submitBtn.style.display = "inline-block";
-                errorContainer.textContent = "❌ Failed to save answer: " + err.message + " Please click Next Question to retry.";
-                errorContainer.style.display = "block";
+                if (errorContainer) {
+                    errorContainer.textContent = "❌ Failed to save answer: " + err.message + " Please click Next Question to retry.";
+                    errorContainer.style.display = "block";
+                }
             }
         }
     </script>
 </head>
 <body>
-    <div class="container" style="max-width: 800px;">
-        <!-- Display Flash Messages -->
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message" style="margin-bottom: 20px;">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎯</div>
+            MockMaster AI
+        </a>
+        <span class="navbar-tag">Interview Active</span>
+    </nav>
 
-        <div id="error-container" class="flash-message" style="display: none; background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; margin-bottom: 20px;"></div>
-
-        <p style="color: #6c757d; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
-            Question {{ current }} of {{ total }}
-        </p>
-        
-        <h2 style="margin-top: 5px; color: #0056b3; margin-bottom: 25px;">{{ question }}</h2>
-        
-        <form action="/submit_answer" method="POST" onsubmit="submitAnswer(event)">
-            <textarea name="answer" rows="10" placeholder="Type your answer here..." required autofocus>{{ existing_answer if existing_answer else '' }}</textarea>
-            <br>
-            <button type="submit" id="submit-btn">
-                {% if current == total %}
-                    Finish Interview
-                {% else %}
-                    Next Question
-                {% endif %}
-            </button>
+    <div class="page-wrapper">
+        <div class="container" style="max-width: 780px;">
             
-            <div id="loading-ui" class="loading-text" style="display: none;">
-                {% if current == total %}
-                    Saving answer & grading your interview... this might take a moment! 
-                {% else %}
-                    Saving answer...
-                {% endif %}
-                <div class="loader"></div>
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step-dot completed">✓</div>
+                <div class="step-line completed"></div>
+                <div class="step-dot completed">✓</div>
+                <div class="step-line completed"></div>
+                <div class="step-dot active">3</div>
+                <div class="step-line"></div>
+                <div class="step-dot">4</div>
             </div>
-        </form>
+
+            <!-- Progress Bar -->
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" style="width: {{ (current / total * 100) | int }}%;"></div>
+            </div>
+            
+            <div id="error-container" class="flash-message" style="display: none; background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; margin-bottom: 20px;"></div>
+
+            <span class="question-number">Question {{ current }} of {{ total }}</span>
+            
+            <div class="question-text">{{ question }}</div>
+            
+            <form action="/submit_answer" method="POST" onsubmit="submitAnswer(event)">
+                <textarea name="answer" rows="10" placeholder="Take your time and answer as if you're in a real interview..." required autofocus>{{ existing_answer if existing_answer else '' }}</textarea>
+                
+                <button type="submit" id="submit-btn">
+                    {% if current == total %}
+                        🏁 Finish & Get Results
+                    {% else %}
+                        Next Question →
+                    {% endif %}
+                </button>
+                
+                <div id="loading-ui" class="loading-text" style="display:none; align-items:center; justify-content:center;">
+                    {% if current == total %}
+                        📊 Grading your full interview — this may take a moment
+                    {% else %}
+                        Saving...
+                    {% endif %}
+                    <div class="loader"></div>
+                </div>
+            </form>
+        </div>
     </div>
 </body>
 </html>

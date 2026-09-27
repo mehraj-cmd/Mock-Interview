@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MockMaster AI — Profile & Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .navbar-user { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; }
+        .profile-avatar-big { width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 32px; color: white; margin: 0 auto 16px; }
+        .joined-date { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; text-align: center; }
+        
+        .settings-section {
+            background: rgba(0,0,0,0.15);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .settings-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 12px;
+        }
+        
+        .danger-zone { border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+        .danger-zone h3 { color: #fca5a5; border-color: rgba(239, 68, 68, 0.2); }
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: white; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">
+            <div class="logo-icon">🎯</div>
+            MockMaster AI
+        </a>
+        <div class="navbar-user">
+            <a href="/dashboard" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500;">Dashboard</a>
+            <div class="avatar">{{ current_user.name[0].upper() }}</div>
+            <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-size: 13px;">Sign out</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper" style="align-items: flex-start;">
+        <div class="container" style="max-width: 680px;">
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        {% if 'deleted' in message %}
+                            <div class="flash-message" style="background: rgba(239,68,68,0.15); color: #fca5a5; border-color: rgba(239,68,68,0.25);">{{ message }}</div>
+                        {% else %}
+                            <div class="flash-message" style="background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(16,185,129,0.25);">{{ message }}</div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="profile-avatar-big">{{ user.name[0].upper() }}</div>
+            <h1 style="text-align: center;">Profile & Settings</h1>
+            <p class="joined-date">📅 Member since {{ user.get('created_at', '')[:10] }}</p>
+
+            <form action="/profile" method="POST">
+                
+                <!-- Account Section -->
+                <div class="settings-section">
+                    <h3>👤 Account Information</h3>
+                    <div class="form-group">
+                        <label for="name">Display Name</label>
+                        <input type="text" id="name" name="name" value="{{ user.name }}" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Email Address</label>
+                        <input type="email" value="{{ user.email }}" disabled>
+                    </div>
+                </div>
+
+                <!-- Interview Preferences -->
+                <div class="settings-section">
+                    <h3>🎯 Interview Preferences</h3>
+                    <div class="form-group">
+                        <label for="default_type">Default Interview Type</label>
+                        <select name="default_type" id="default_type">
+                            <option value="">No default</option>
+                            <option value="Technical" {% if user.default_type == 'Technical' %}selected{% endif %}>Technical (Coding / Algorithms)</option>
+                            <option value="HR/Behavioral" {% if user.default_type == 'HR/Behavioral' %}selected{% endif %}>HR / Behavioral</option>
+                            <option value="System Design" {% if user.default_type == 'System Design' %}selected{% endif %}>System Design</option>
+                            <option value="Case Study" {% if user.default_type == 'Case Study' %}selected{% endif %}>Case Study / Consulting</option>
+                            <option value="Management" {% if user.default_type == 'Management' %}selected{% endif %}>Management / Leadership</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="default_role">Default Target Role</label>
+                        <input type="text" id="default_role" name="default_role" value="{{ user.default_role or '' }}" placeholder="e.g. Software Engineer, Product Manager">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="saved_resume">Saved Resume (auto-fills on new interviews)</label>
+                        <textarea id="saved_resume" name="saved_resume" rows="6" placeholder="Paste your resume here...">{{ user.saved_resume or '' }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="settings-section">
+                    <h3>⚙️ Advanced Settings</h3>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label for="custom_api_key">Custom Gemini API Key (Optional)</label>
+                        <input type="password" id="custom_api_key" name="custom_api_key" value="{{ user.custom_api_key or '' }}" placeholder="Paste your own API key to bypass server limits">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">If left blank, the app will use the system's default key. Your key is securely saved and only used for your sessions.</p>
+                    </div>
+                </div>
+
+                <button type="submit" style="width:100%; margin-bottom: 32px;">Save All Changes ✓</button>
+            </form>
+
+            <!-- Danger Zone -->
+            <div class="settings-section danger-zone">
+                <h3>⚠️ Danger Zone</h3>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">This will permanently delete all your past interview sessions, questions, answers, and scores. This action cannot be undone.</p>
+                <form action="/clear_history" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete all your interview history?');">
+                    <button type="submit" class="btn-danger">Delete Interview History</button>
+                </form>
+            </div>
+
+            <div style="text-align: center; margin-top: 24px;">
+                <a href="/dashboard" style="color: var(--text-muted); font-size: 14px; text-decoration: none;">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

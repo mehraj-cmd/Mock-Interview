@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Mock Interview App</title>
+    <title>MockMaster AI — Interview Setup</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         const rolesData = {
@@ -57,62 +57,85 @@
         
         function showLoading(form) {
             form.querySelector('#submit-btn').style.display = 'none';
-            form.querySelector('#loading-ui').style.display = 'block';
+            form.querySelector('#loading-ui').style.display = 'flex';
         }
     </script>
 </head>
 <body>
-    <div class="container">
-        <!-- Display Flash Error Messages -->
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="flash-message">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <div class="logo-icon">🎯</div>
+            MockMaster AI
+        </a>
+        <span class="navbar-tag">Beta</span>
+    </nav>
 
-        <h1>Step 2: Interview Setup</h1>
-        <p>Awesome! We've analyzed your resume. Now, what kind of interview are you preparing for?</p>
-        
-        <form action="/save_setup" method="POST" onsubmit="showLoading(this)">
-            <div class="form-group">
-                <label for="interview_type">Interview Type:</label>
-                <select name="interview_type" id="interview_type" required>
-                    <option value="" disabled selected>Select a type...</option>
-                    <option value="Technical">Technical (Coding / Algorithms)</option>
-                    <option value="HR/Behavioral">HR / Behavioral</option>
-                    <option value="System Design">System Design</option>
-                    <option value="Case Study">Case Study / Consulting</option>
-                    <option value="Management">Management / Leadership</option>
-                    <option value="Pair Programming">Pair Programming</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="category">Job Category:</label>
-                <select id="category" onchange="updateRoles()" required>
-                    <option value="" disabled selected>Select a category...</option>
-                    <option value="Software Engineering">Software Engineering</option>
-                    <option value="Data & AI">Data & AI</option>
-                    <option value="Design & Product">Design & Product</option>
-                    <option value="IT & Infrastructure">IT & Infrastructure</option>
-                    <option value="Business & Other">Business & Other</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="role">Target Role:</label>
-                <select name="role" id="role" required>
-                    <option value="" disabled selected>Select a category first...</option>
-                </select>
-            </div>
+    <div class="page-wrapper">
+        <div class="container">
             
-            <button type="submit" id="submit-btn">Prepare Questions</button>
-            <div id="loading-ui" class="loading-text">
-                Generating customized questions... <div class="loader"></div>
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step-dot completed">✓</div>
+                <div class="step-line completed"></div>
+                <div class="step-dot active">2</div>
+                <div class="step-line"></div>
+                <div class="step-dot">3</div>
+                <div class="step-line"></div>
+                <div class="step-dot">4</div>
             </div>
-        </form>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message">⚠️ {{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <h1>⚙️ Interview Setup</h1>
+            <p class="subtitle">Great — your resume has been analyzed! Now configure your mock interview session below.</p>
+            
+            <form action="/save_setup" method="POST" onsubmit="showLoading(this)">
+                <div class="form-group">
+                    <label for="interview_type">Interview Type</label>
+                    <select name="interview_type" id="interview_type" required>
+                        <option value="" disabled selected>Select a type...</option>
+                        <option value="Technical">Technical (Coding / Algorithms)</option>
+                        <option value="HR/Behavioral">HR / Behavioral</option>
+                        <option value="System Design">System Design</option>
+                        <option value="Case Study">Case Study / Consulting</option>
+                        <option value="Management">Management / Leadership</option>
+                        <option value="Pair Programming">Pair Programming</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Job Category</label>
+                    <select id="category" onchange="updateRoles()" required>
+                        <option value="" disabled selected>Select a category...</option>
+                        <option value="Software Engineering">Software Engineering</option>
+                        <option value="Data & AI">Data & AI</option>
+                        <option value="Design & Product">Design & Product</option>
+                        <option value="IT & Infrastructure">IT & Infrastructure</option>
+                        <option value="Business & Other">Business & Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Target Role</label>
+                    <select name="role" id="role" required>
+                        <option value="" disabled selected>Select a category first...</option>
+                    </select>
+                </div>
+                
+                <button type="submit" id="submit-btn">Generate Questions →</button>
+                <div id="loading-ui" class="loading-text" style="display:none; align-items:center; justify-content:center;">
+                    🧠 AI is crafting your questions <div class="loader"></div>
+                </div>
+            </form>
+        </div>
     </div>
 </body>
 </html>

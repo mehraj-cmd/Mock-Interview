@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MockMaster AI — Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dash-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .chart-card {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        .session-list { display: flex; flex-direction: column; gap: 12px; }
+        .session-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.15);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+            transition: border-color 0.3s;
+        }
+        .session-row:hover { border-color: rgba(79,70,229,0.4); }
+        .session-meta { text-align: left; }
+        .session-role { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+        .session-type { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .session-date { font-size: 12px; color: var(--text-muted); }
+        .session-score {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
+        .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+        .start-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 14px 36px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        .start-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(79,70,229,0.4); }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 600px) {
+            .dash-grid { grid-template-columns: 1fr; }
+        }
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .avatar {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/dashboard" class="navbar-brand">
+            <div class="logo-icon">🎯</div>
+            MockMaster AI
+        </a>
+        <div class="navbar-user">
+            <a href="/profile" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500;">{{ current_user.name }}</a>
+            <div class="avatar">{{ current_user.name[0].upper() }}</div>
+            <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-size: 13px;">Sign out</a>
+        </div>
+    </nav>
+
+    <div class="page-wrapper" style="align-items: flex-start;">
+        <div class="report-container">
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="flash-message" style="margin-bottom:24px;">✅ {{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px; flex-wrap:wrap; gap:16px;">
+                <div style="text-align:left;">
+                    <h1 style="-webkit-text-fill-color: var(--text-primary); background: none; color: var(--text-primary); font-size:24px; margin-bottom:4px;">
+                        👋 Welcome back, {{ current_user.name.split()[0] }}!
+                    </h1>
+                    <p style="color: var(--text-muted); font-size:14px; margin:0;">Here's your interview progress at a glance.</p>
+                </div>
+                <a href="/resume" class="start-btn">+ Start New Interview</a>
+            </div>
+
+            <!-- Stats -->
+            <div class="dash-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_interviews }}</div>
+                    <div class="stat-label">Interviews Done</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_score }}</div>
+                    <div class="stat-label">Avg Score / 10</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ best_score }}</div>
+                    <div class="stat-label">Best Score / 10</div>
+                </div>
+            </div>
+
+            <!-- Progress Chart -->
+            {% if scores %}
+            <div class="chart-card">
+                <h3 class="section-title" style="margin-bottom:20px;">📈 Score Over Time</h3>
+                <canvas id="progressChart" height="80"></canvas>
+            </div>
+            <script>
+                const ctx = document.getElementById('progressChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ labels | tojson }},
+                        datasets: [{
+                            label: 'Score',
+                            data: {{ scores | tojson }},
+                            borderColor: '#818cf8',
+                            backgroundColor: 'rgba(79,70,229,0.1)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#06b6d4',
+                            pointRadius: 5,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                min: 0, max: 10,
+                                ticks: { color: '#64748b', stepSize: 2 },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            x: {
+                                ticks: { color: '#64748b' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            </script>
+            {% endif %}
+
+            <!-- Past Sessions -->
+            <div class="section-header">
+                <h3 class="section-title" style="margin-bottom:0; border:none; padding:0;">📋 Past Interviews</h3>
+            </div>
+
+            {% if past_sessions %}
+            <div class="session-list">
+                {% for s in past_sessions %}
+                <div class="session-row">
+                    <div class="session-meta">
+                        <div class="session-role">{{ s.role }}</div>
+                        <div class="session-type">{{ s.interview_type }} · {{ s.created_at[:10] }}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <div class="session-score">{{ s.overall_score }} / 10</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🎤</div>
+                <p style="font-size:16px; font-weight:600; color: var(--text-secondary); margin-bottom:8px;">No interviews yet</p>
+                <p style="margin-bottom:24px;">Start your first mock interview to see your progress here!</p>
+                <a href="/resume" class="start-btn">Start Your First Interview</a>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</body>
+</html>

@@ -1,17 +1,17 @@
 import os
 from ai_client import generate_ai_completion, has_valid_api_key
 
-def grade_answer(question, answer, role, interview_type):
+def grade_answer(question, answer, role, interview_type, api_key=None):
     """
     Grades a single interview answer using Part 1 (Rubric) and Part 3 (Few-shot examples)
     from Mock-Interview-Master-Reference.md via AI (Gemini with Grok failover).
     Returns a dictionary with 'score', 'feedback', and 'improvement_tip'.
     """
-    if not has_valid_api_key():
+    if not has_valid_api_key() and not api_key:
         return {
             "score": 0.0,
-            "feedback": "API Key not configured. Please set GEMINI_API_KEY or GROK_API_KEY in your .env file.",
-            "improvement_tip": "Configure your .env file."
+            "feedback": "API Key not configured. Please set GEMINI_API_KEY or GROK_API_KEY in your environment or settings.",
+            "improvement_tip": "Configure your API key."
         }
     
     # Read the Master Reference Doc (Part 1 Rubric & Part 3 Calibration Examples)
@@ -66,7 +66,7 @@ def grade_answer(question, answer, role, interview_type):
     """
     
     try:
-        result = generate_ai_completion(prompt, json_mode=True)
+        result = generate_ai_completion(prompt, json_mode=True, api_key=api_key)
         if isinstance(result, dict):
             # Ensure score is numeric and within 1.0 - 5.0 range
             score = float(result.get('score', 3.0))
