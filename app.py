@@ -17,21 +17,31 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = "Please log in to access that page."
 
+# ── Gemini client helper ──────────────────────────────────────────────────────
+def get_gemini_client():
+    """Returns a genai.Client using the user's custom API key, or the system default."""
+    if current_user.is_authenticated and current_user.custom_api_key:
+        return genai.Client(api_key=current_user.custom_api_key)
+    
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if api_key and api_key != "your_api_key_here":
+        return genai.Client(api_key=api_key)
+    return None
+
 class User(UserMixin):
     def __init__(self, user_dict):
         self.id = user_dict['id']
         self.name = user_dict['name']
         self.email = user_dict['email']
         self.saved_resume = user_dict.get('saved_resume', '')
+        self.default_type = user_dict.get('default_type', '')
+        self.default_role = user_dict.get('default_role', '')
+        self.custom_api_key = user_dict.get('custom_api_key', '')
 
 @login_manager.user_loader
 def load_user(user_id):
     row = db.get_user_by_id(int(user_id))
     return User(row) if row else None
-
-# ── Gemini client ─────────────────────────────────────────────────────────────
-api_key = os.environ.get("GEMINI_API_KEY")
-client = genai.Client(api_key=api_key) if api_key and api_key != "your_api_key_here" else None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -135,15 +145,31 @@ def profile():
     if request.method == 'POST':
         new_name = request.form.get('name', '').strip()
         saved_resume = request.form.get('saved_resume', '').strip()
-        if new_name:
-            db.update_user_name(current_user.id, new_name)
-        if saved_resume:
-            db.save_user_resume(current_user.id, saved_resume)
-        flash("Profile updated successfully! ✅")
+        default_type = request.form.get('default_type', '').strip()
+        default_role = request.form.get('default_role', '').strip()
+        custom_api_key = request.form.get('custom_api_key', '').strip()
+        
+        db.update_user_profile(
+            current_user.id, 
+            new_name, 
+            saved_resume, 
+            default_type, 
+            default_role, 
+            custom_api_key
+        )
+        flash("Profile and preferences updated successfully! ✅")
         return redirect(url_for('profile'))
 
     user_row = db.get_user_by_id(current_user.id)
     return render_template('profile.html', user=user_row)
+
+
+@app.route('/clear_history', methods=['POST'])
+@login_required
+def clear_history():
+    db.clear_user_history(current_user.id)
+    flash("Your interview history has been permanently deleted.")
+    return redirect(url_for('profile'))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -184,13 +210,23 @@ def process_resume():
         flash("Please either paste your resume text or upload a PDF file.")
         return redirect(url_for('resume_page'))
 
+    client = get_gemini_client()
     if not client:
-        flash("Gemini API key not configured properly.")
+        flash("Gemini API key not configured. Add one in your Profile Settings or check the server .env.")
         return redirect(url_for('resume_page'))
 
     # Optionally save resume to user profile
     if save_it:
-        db.save_user_resume(current_user.id, resume_text)
+        user_row = db.get_user_by_id(current_user.id)
+        db.update_user_profile(
+            current_user.id, 
+            user_row['name'], 
+            resume_text, 
+            user_row.get('default_type', ''), 
+            user_row.get('default_role', ''), 
+            user_row.get('custom_api_key', '')
+        )
+
 
     prompt = f"""
     Analyze the following resume text and extract the applicant's skills, project names, and technologies.
@@ -222,7 +258,12 @@ def process_resume():
 def setup_interview():
     if 'resume_data' not in session:
         return redirect(url_for('resume_page'))
-    return render_template('setup.html')
+        
+    user_row = db.get_user_by_id(current_user.id)
+    default_type = user_row.get('default_type', '') if user_row else ''
+    default_role = user_row.get('default_role', '') if user_row else ''
+    
+    return render_template('setup.html', default_type=default_type, default_role=default_role)
 
 
 @app.route('/save_setup', methods=['POST'])
@@ -246,8 +287,10 @@ def generate_questions():
     role           = session.get('role')
     if not resume_data or not interview_type or not role:
         return redirect(url_for('resume_page'))
+    
+    client = get_gemini_client()
     if not client:
-        flash("Gemini API key not configured.")
+        flash("Gemini API key not configured. Please add one in your Profile Settings.")
         return redirect(url_for('resume_page'))
 
     prompt = f"""
@@ -317,9 +360,15 @@ def process_grades():
 
     from grader import grade_answer
     total_score = 0
+    client = get_gemini_client() # Need to pass API key to grader if we want it dynamic. For now, grade_answer does not use this client!
+    # Wait, grade_answer in grader.py uses a globally initialized client!
+    # I should pass the client OR the api key to grade_answer.
+    # For now, let's fix grader.py to accept an optional api_key parameter.
+    
     for i, q in enumerate(questions):
         a     = answers[i] if i < len(answers) else ""
-        grade = grade_answer(q, a, role, interview_type)
+        api_key_to_use = current_user.custom_api_key or os.environ.get("GEMINI_API_KEY")
+        grade = grade_answer(q, a, role, interview_type, api_key_to_use)
         score = grade.get('score', 0)
         total_score += score
         db.add_qa_record(db_session_id, q, a, score,

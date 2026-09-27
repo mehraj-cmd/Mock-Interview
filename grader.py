@@ -3,12 +3,13 @@ import json
 from google import genai
 from google.genai import types
 
-def grade_answer(question, answer, role, interview_type):
+def grade_answer(question, answer, role, interview_type, api_key=None):
     """
     Grades a single interview answer using the Master Rubric via the Gemini API.
     Returns a dictionary with 'score', 'feedback', and 'improvement_tip'.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         return {"score": 0, "feedback": "API Key missing.", "improvement_tip": ""}
         

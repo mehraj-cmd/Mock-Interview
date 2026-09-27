@@ -51,6 +51,23 @@ def init_db():
         )
     ''')
 
+    # ── Migrations: safely add new columns if they don't already exist ────────
+    migrations = [
+        "ALTER TABLE sessions ADD COLUMN overall_score REAL DEFAULT 0",
+        "ALTER TABLE sessions ADD COLUMN user_id INTEGER",
+        "ALTER TABLE sessions ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN saved_resume TEXT",
+        "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN default_type TEXT",
+        "ALTER TABLE users ADD COLUMN default_role TEXT",
+        "ALTER TABLE users ADD COLUMN custom_api_key TEXT",
+    ]
+    for sql in migrations:
+        try:
+            c.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # Column already exists — safe to ignore
+
     conn.commit()
     conn.close()
 
@@ -104,20 +121,30 @@ def verify_password(email, password):
     return None
 
 
-def save_user_resume(user_id, resume_text):
-    """Saves/updates the user's stored resume text."""
+def update_user_profile(user_id, name, saved_resume, default_type, default_role, custom_api_key):
+    """Updates all user profile settings."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('UPDATE users SET saved_resume = ? WHERE id = ?', (resume_text, user_id))
+    c.execute('''
+        UPDATE users 
+        SET name = ?, saved_resume = ?, default_type = ?, default_role = ?, custom_api_key = ?
+        WHERE id = ?
+    ''', (name, saved_resume, default_type, default_role, custom_api_key, user_id))
     conn.commit()
     conn.close()
 
 
-def update_user_name(user_id, name):
-    """Updates the user's display name."""
+def clear_user_history(user_id):
+    """Deletes all sessions and Q&A records for a user."""
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('UPDATE users SET name = ? WHERE id = ?', (name, user_id))
+    # Delete QA records tied to this user's sessions
+    c.execute('''
+        DELETE FROM qa_records 
+        WHERE session_id IN (SELECT id FROM sessions WHERE user_id = ?)
+    ''', (user_id,))
+    # Delete the sessions themselves
+    c.execute('DELETE FROM sessions WHERE user_id = ?', (user_id,))
     conn.commit()
     conn.close()
 
