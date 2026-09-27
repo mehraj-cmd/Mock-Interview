@@ -6,106 +6,28 @@
     <title>MockMaster AI — Resume</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        /* ── Tab switcher ── */
-        .tab-bar {
-            display: flex;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius-sm);
-            padding: 4px;
-            margin-bottom: 24px;
-            gap: 4px;
-        }
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: none;
-            transform: none;
-        }
-        .tab-btn:hover {
-            transform: none;
-            box-shadow: none;
-            background: rgba(255,255,255,0.05);
-            color: var(--text-primary);
-        }
-        .tab-btn.active {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            box-shadow: 0 4px 12px rgba(79,70,229,0.35);
-        }
+        .tab-bar { display: flex; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 24px; gap: 4px; }
+        .tab-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s ease; box-shadow: none; transform: none; }
+        .tab-btn:hover { transform: none; box-shadow: none; background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .tab-btn.active { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.35); }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-
-        /* ── PDF Drop Zone ── */
-        .drop-zone {
-            border: 2px dashed var(--glass-border);
-            border-radius: var(--radius-sm);
-            padding: 40px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(0,0,0,0.15);
-            margin-bottom: 24px;
-        }
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--primary);
-            background: rgba(79,70,229,0.07);
-        }
+        .drop-zone { border: 2px dashed var(--glass-border); border-radius: var(--radius-sm); padding: 40px 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; background: rgba(0,0,0,0.15); margin-bottom: 24px; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: rgba(79,70,229,0.07); }
         .drop-zone .dz-icon { font-size: 40px; margin-bottom: 12px; display: block; }
-        .drop-zone .dz-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 6px;
-        }
-        .drop-zone .dz-sub {
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-bottom: 16px;
-        }
+        .drop-zone .dz-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+        .drop-zone .dz-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
         .drop-zone input[type="file"] { display: none; }
-
-        .file-chosen {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            background: rgba(16,185,129,0.1);
-            border: 1px solid rgba(16,185,129,0.25);
-            border-radius: var(--radius-sm);
-            padding: 12px 16px;
-            margin-bottom: 24px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #6ee7b7;
-        }
-        .file-chosen .remove-file {
-            margin-left: auto;
-            cursor: pointer;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 18px;
-            padding: 0;
-            transform: none;
-            box-shadow: none;
-        }
-        .file-chosen .remove-file:hover {
-            color: var(--danger);
-            transform: none;
-            box-shadow: none;
-        }
+        .file-chosen { display: none; align-items: center; gap: 10px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 24px; font-size: 14px; font-weight: 600; color: #6ee7b7; }
+        .file-chosen .remove-file { margin-left: auto; cursor: pointer; background: none; border: none; color: var(--text-muted); font-size: 18px; padding: 0; transform: none; box-shadow: none; }
+        .file-chosen .remove-file:hover { color: var(--danger); transform: none; box-shadow: none; }
+        .save-check { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 14px; color: var(--text-secondary); text-align: left; }
+        .save-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+        .navbar-user { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; }
     </style>
     <script>
         function showLoading(form) {
-            // Validate: in PDF tab, make sure a file is actually selected
             const activePanel = form.querySelector('.tab-panel.active');
             if (activePanel && activePanel.id === 'tab-pdf') {
                 const fileInput = document.getElementById('resume_pdf');
@@ -117,77 +39,59 @@
             form.querySelector('#submit-btn').style.display = 'none';
             form.querySelector('#loading-ui').style.display = 'flex';
         }
-
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
             document.getElementById(`tab-${tab}`).classList.add('active');
-
-            // Toggle required attributes so HTML5 validation works correctly
             const textarea = document.getElementById('resume_text');
             const fileInput = document.getElementById('resume_pdf');
-            if (tab === 'text') {
-                textarea.setAttribute('required', '');
-                fileInput.removeAttribute('required');
-            } else {
-                textarea.removeAttribute('required');
-                // file input required is handled manually in showLoading
-            }
+            if (tab === 'text') { textarea.setAttribute('required', ''); fileInput.removeAttribute('required'); }
+            else { textarea.removeAttribute('required'); }
         }
-
         function handleFileSelect(input) {
             const file = input.files[0];
             if (!file) return;
-            if (!file.name.endsWith('.pdf')) {
-                alert('Only PDF files are supported. Please select a .pdf file.');
-                input.value = '';
-                return;
-            }
+            if (!file.name.endsWith('.pdf')) { alert('Only PDF files are supported.'); input.value = ''; return; }
             document.getElementById('chosen-name').textContent = '📄 ' + file.name;
             document.getElementById('file-chosen-box').style.display = 'flex';
             document.getElementById('drop-zone-inner').style.display = 'none';
         }
-
         function removeFile() {
             document.getElementById('resume_pdf').value = '';
             document.getElementById('file-chosen-box').style.display = 'none';
             document.getElementById('drop-zone-inner').style.display = 'block';
         }
-
-        // Drag & Drop logic
         document.addEventListener('DOMContentLoaded', function() {
             const zone = document.getElementById('pdf-drop-zone');
             if (!zone) return;
             zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
             zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
             zone.addEventListener('drop', e => {
-                e.preventDefault();
-                zone.classList.remove('dragover');
+                e.preventDefault(); zone.classList.remove('dragover');
                 const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const input = document.getElementById('resume_pdf');
-                    input.files = files;
-                    handleFileSelect(input);
-                }
+                if (files.length > 0) { const input = document.getElementById('resume_pdf'); input.files = files; handleFileSelect(input); }
             });
         });
     </script>
 </head>
 <body>
-    <!-- Navbar -->
     <nav class="navbar">
-        <a href="/" class="navbar-brand">
+        <a href="/dashboard" class="navbar-brand">
             <div class="logo-icon">🎯</div>
             MockMaster AI
         </a>
-        <span class="navbar-tag">Beta</span>
+        <div class="navbar-user">
+            <a href="/dashboard" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Dashboard</a>
+            <a href="/profile" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Profile</a>
+            <div class="avatar">{{ current_user.name[0].upper() }}</div>
+            <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-size: 13px;">Sign out</a>
+        </div>
     </nav>
 
     <div class="page-wrapper">
         <div class="container">
 
-            <!-- Step Indicator -->
             <div class="step-indicator">
                 <div class="step-dot active">1</div>
                 <div class="step-line"></div>
@@ -198,55 +102,48 @@
                 <div class="step-dot">4</div>
             </div>
 
-            <!-- Flash Messages -->
             {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="flash-message">⚠️ {{ message }}</div>
-                    {% endfor %}
-                {% endif %}
+                {% if messages %}{% for message in messages %}<div class="flash-message">⚠️ {{ message }}</div>{% endfor %}{% endif %}
             {% endwith %}
 
-            <h1>📄 Upload Your Resume</h1>
-            <p class="subtitle">Paste your resume text or upload a PDF — our AI will extract your skills and tailor your interview questions.</p>
+            <h1>📄 Your Resume</h1>
+            <p class="subtitle">Paste your resume text or upload a PDF — the AI will extract your skills to personalize your questions.</p>
 
-            <!-- Important: enctype must be multipart so Flask can receive the file -->
             <form action="/process_resume" method="POST" enctype="multipart/form-data" onsubmit="return showLoading(this) !== false">
-
-                <!-- Tab Switcher -->
                 <div class="tab-bar">
                     <button type="button" class="tab-btn active" data-tab="text" onclick="switchTab('text')">✏️ Paste Text</button>
                     <button type="button" class="tab-btn" data-tab="pdf" onclick="switchTab('pdf')">📎 Upload PDF</button>
                 </div>
 
-                <!-- Text Tab -->
                 <div class="tab-panel active" id="tab-text">
-                    <textarea id="resume_text" name="resume_text" rows="12"
-                        placeholder="Paste your full resume here — the more detail, the better your questions will be..."
-                        required></textarea>
+                    <textarea id="resume_text" name="resume_text" rows="10"
+                        placeholder="Paste your full resume here..."
+                        required>{{ saved_resume }}</textarea>
                 </div>
 
-                <!-- PDF Tab -->
                 <div class="tab-panel" id="tab-pdf">
                     <div class="drop-zone" id="pdf-drop-zone" onclick="document.getElementById('resume_pdf').click()">
                         <div id="drop-zone-inner">
                             <span class="dz-icon">☁️</span>
                             <div class="dz-title">Click to browse or drag & drop</div>
-                            <div class="dz-sub">Supported format: PDF only · Max 10 MB</div>
+                            <div class="dz-sub">PDF only · Max 10 MB</div>
                             <button type="button" style="padding: 10px 24px; font-size:14px;">Browse File</button>
                         </div>
                         <input type="file" id="resume_pdf" name="resume_pdf" accept=".pdf" onchange="handleFileSelect(this)">
                     </div>
-
-                    <!-- Chosen file indicator -->
                     <div class="file-chosen" id="file-chosen-box">
                         <span id="chosen-name"></span>
                         <button type="button" class="remove-file" onclick="removeFile()">✕</button>
                     </div>
                 </div>
 
-                <button type="submit" id="submit-btn">Analyze Resume →</button>
+                <!-- Save to profile checkbox -->
+                <label class="save-check">
+                    <input type="checkbox" name="save_resume" checked>
+                    Save this resume to my profile for future interviews
+                </label>
 
+                <button type="submit" id="submit-btn">Analyze Resume →</button>
                 <div id="loading-ui" class="loading-text" style="display:none; align-items:center; justify-content:center;">
                     ✨ AI is reading your resume <div class="loader"></div>
                 </div>
