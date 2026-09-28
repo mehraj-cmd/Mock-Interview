@@ -292,15 +292,24 @@ def generate_questions():
     3. Tied to what the candidate actually claims in their resume (ask candidates to explain listed projects from scratch or rate their familiarity with tools/technologies listed).
     4. Generate NEW questions in a similar authentic style tailored specifically to the candidate's resume, rather than copying fixed questions directly.
 
-    Return the result STRICTLY as a JSON array of strings. 
-    Example format: ["Walk me through how you built project X?", "How would you handle scenario Y?"]
+    Return the result STRICTLY as a JSON object containing a single key "questions" which is an array of strings. 
+    Example format: {{ "questions": ["Walk me through how you built project X?", "How would you handle scenario Y?"] }}
 
     <MASTER_REFERENCE_DOC>
     {master_ref_text}
     </MASTER_REFERENCE_DOC>
     """
     try:
-        questions = generate_ai_completion(prompt, json_mode=True, api_key=user_api_key)
+        response_data = generate_ai_completion(prompt, json_mode=True, api_key=user_api_key)
+        
+        # Handle both the new object format and fallback array format
+        if isinstance(response_data, dict) and 'questions' in response_data:
+            questions = response_data['questions']
+        elif isinstance(response_data, list):
+            questions = response_data
+        else:
+            questions = [str(response_data)]
+            
         if not isinstance(questions, list):
             questions = [str(questions)]
         
