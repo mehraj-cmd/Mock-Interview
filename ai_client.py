@@ -58,28 +58,23 @@ def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None, temper
         temperature=temperature
     )
 
-    models_to_try = ['gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
+    models_to_try = ['gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-2.0-flash', 'gemini-flash-latest']
     last_error = None
 
-    import time
     for model in models_to_try:
-        attempts = 0
-        while attempts < 1: # Only 1 attempt per model, no retries to ensure instant failover
-            try:
-                response = client.models.generate_content(
-                    model=model,
-                    contents=prompt,
-                    config=config
-                )
-                if response and response.text:
-                    return response.text
-            except Exception as e:
-                last_error = e
-                err_str = str(e)
-                print(f"[AI Client] Gemini model '{model}' failed: {err_str}")
-                break # Instantly break and try the next model instead of sleeping
-
-        # If all 4 models fail instantly, it takes ~1-2 seconds total before hitting Groq
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config
+            )
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            last_error = e
+            err_str = str(e)
+            print(f"[AI Client] Gemini model '{model}' failed: {err_str}")
+            continue
 
     raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
 
@@ -98,7 +93,7 @@ def call_groq(prompt: str, json_mode: bool = True) -> str:
     if json_mode:
         system_prompt += " You MUST respond ONLY with a valid JSON object or JSON array without markdown wrapping or commentary."
 
-    models_to_try = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b", "openai/gpt-oss-120b", "allam-2-7b"]
+    models_to_try = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
     last_error = None
 
     for model in models_to_try:
