@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Grading Your Interview | MockMaster AI{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex flex-col items-center justify-center px-4">
+    <div class="glass-panel rounded-3xl p-10 md:p-16 border border-slate-700/50 text-center max-w-lg w-full shadow-2xl">
+
+        <!-- Animated rings -->
+        <div class="relative w-28 h-28 mx-auto mb-8">
+            <div class="absolute inset-0 rounded-full border-4 border-brand-500/30 animate-ping"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-t-brand-500 border-r-purple-500 border-b-transparent border-l-transparent animate-spin"></div>
+            <div class="absolute inset-2 rounded-full border-4 border-t-transparent border-r-transparent border-b-purple-400 border-l-brand-400 animate-spin" style="animation-duration:1.5s; animation-direction:reverse;"></div>
+            <div class="absolute inset-0 flex items-center justify-center text-3xl">🤖</div>
+        </div>
+
+        <h1 class="text-2xl md:text-3xl font-heading font-extrabold text-white mb-3">Grading Your Answers</h1>
+        <p class="text-slate-400 text-base mb-8 leading-relaxed">
+            The AI is reviewing all your answers in parallel.<br>
+            This usually takes <span class="text-brand-400 font-semibold">10–20 seconds</span>.
+        </p>
+
+        <!-- Progress dots -->
+        <div class="flex items-center justify-center gap-2 mb-8">
+            <div class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-bounce" style="animation-delay:0s"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-purple-500 animate-bounce" style="animation-delay:0.15s"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-brand-400 animate-bounce" style="animation-delay:0.3s"></div>
+        </div>
+
+        <div id="status-msg" class="text-sm text-slate-500">Checking status...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let attempts = 0;
+    const maxAttempts = 120; // poll for up to 4 minutes max
+
+    async function checkStatus() {
+        attempts++;
+        try {
+            const res = await fetch('/grading_status');
+            const data = await res.json();
+
+            if (data.done) {
+                document.getElementById('status-msg').textContent = '✅ Done! Redirecting to your report...';
+                window.location.href = data.redirect;
+                return;
+            }
+
+            if (data.error) {
+                document.getElementById('status-msg').textContent = 'Still processing... (' + data.error + ')';
+            } else {
+                const dots = '.'.repeat((attempts % 4));
+                document.getElementById('status-msg').textContent = 'Grading in progress' + dots;
+            }
+
+            if (attempts < maxAttempts) {
+                setTimeout(checkStatus, 2000);
+            } else {
+                document.getElementById('status-msg').textContent = '⚠️ Taking longer than expected. Try refreshing.';
+            }
+        } catch (e) {
+            document.getElementById('status-msg').textContent = 'Network error — retrying...';
+            if (attempts < maxAttempts) setTimeout(checkStatus, 3000);
+        }
+    }
+
+    // Start polling after a short delay
+    setTimeout(checkStatus, 1500);
+</script>
+{% endblock %}

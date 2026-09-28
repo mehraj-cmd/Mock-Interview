@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 import db
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
@@ -413,74 +414,106 @@ def submit_answer():
 @app.route('/process_grades')
 @login_required
 def process_grades():
-    """Step 7 & 8: Grade all recorded answers via AI and save grades in SQLite."""
+    """Kick off background grading and immediately show the waiting page."""
     db_session_id = session.get('db_session_id')
     if not db_session_id:
         return redirect(url_for('resume_page'))
-        
+
     interview_type, role, resume_data, questions = db.get_session(db_session_id)
     qa_list = db.get_qa_records(db_session_id)
-    
+
     if not qa_list:
         flash("No answers were recorded to grade.")
         return redirect(url_for('resume_page'))
-        
-    from grader import grade_answer
-    import concurrent.futures
+
     user_api_key = current_user.custom_api_key if current_user.is_authenticated else None
 
-    # Filter out already graded answers to save API calls
-    ungraded_qas = [qa for qa in qa_list if qa['score'] == 0 and not qa['feedback']]
-    
-    if ungraded_qas:
-        def _grade_single(qa):
-            grade = grade_answer(qa['question'], qa['answer'], role, interview_type, user_api_key)
-            return qa['q_index'], grade
+    # Mark session as grading-in-progress (-1 = sentinel)
+    db.update_session_score(db_session_id, -1)
 
-        # Grade all answers in parallel!
-        results_to_save = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-            futures = [executor.submit(_grade_single, qa) for qa in ungraded_qas]
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    q_index, grade = future.result()
-                    results_to_save.append((q_index, grade))
-                except Exception as e:
-                    print(f"Error grading in parallel: {e}")
+    def _run_grading():
+        from grader import grade_answer
+        import concurrent.futures
 
-        # Save to database sequentially to prevent SQLite 'database is locked' errors
-        for q_index, grade in results_to_save:
-            db.update_qa_grade(
-                session_id=db_session_id,
-                q_index=q_index,
-                score=grade.get('score_out_of_10', grade.get('score', 0) * 2),
-                feedback=grade.get('feedback', ''),
-                improvement_tip=grade.get('improvement_tip', '')
-            )
+        ungraded_qas = [qa for qa in qa_list if qa['score'] == 0 and not qa['feedback']]
 
-    # Calculate and store overall score on session (average of per-question 1-10 scores)
-    graded_records = db.get_qa_records(db_session_id)
-    if graded_records:
-        overall = round(sum(r['score'] for r in graded_records) / len(graded_records), 1)
+        if ungraded_qas:
+            def _grade_single(qa):
+                grade = grade_answer(qa['question'], qa['answer'], role, interview_type, user_api_key)
+                return qa['q_index'], grade
+
+            results_to_save = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(_grade_single, qa) for qa in ungraded_qas]
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        q_index, grade = future.result()
+                        results_to_save.append((q_index, grade))
+                    except Exception as e:
+                        print(f"[process_grades] Parallel grading error: {e}")
+
+            # Save sequentially to avoid SQLite 'database is locked'
+            for q_index, grade in results_to_save:
+                # Scores are natively 1-10; store directly, no conversion needed
+                db.update_qa_grade(
+                    session_id=db_session_id,
+                    q_index=q_index,
+                    score=grade.get('score', 0),
+                    feedback=grade.get('feedback', ''),
+                    improvement_tip=grade.get('improvement_tip', '')
+                )
+
+        # Compute overall = average of per-question 1-10 scores
+        graded_records = db.get_qa_records(db_session_id)
+        if graded_records:
+            valid_scores = [r['score'] for r in graded_records if r['score'] > 0]
+            overall = round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else 0.0
+        else:
+            overall = 0.0
         db.update_session_score(db_session_id, overall)
+        print(f"[process_grades] Grading complete. Overall={overall}")
 
-    return redirect(url_for('report_card'))
+    threading.Thread(target=_run_grading, daemon=True).start()
+    return redirect(url_for('grading_wait'))
+
+
+@app.route('/grading_wait')
+@login_required
+def grading_wait():
+    """Show animated waiting page while background grading runs."""
+    return render_template('grading_wait.html')
+
+
+@app.route('/grading_status')
+@login_required
+def grading_status():
+    """Poll endpoint: returns JSON with done=True once grading finishes."""
+    db_session_id = session.get('db_session_id')
+    if not db_session_id:
+        return jsonify({'done': False, 'error': 'No session'})
+    row = db.get_session_row(db_session_id)
+    if row is None:
+        return jsonify({'done': False, 'error': 'Session not found'})
+    score = row['overall_score']
+    # -1 = still running; None = not started; 0 or positive = done
+    done = (score is not None and float(score) != -1)
+    return jsonify({'done': done, 'redirect': url_for('report_card')})
 
 
 @app.route('/report_card')
 @login_required
 def report_card():
-    """Step 9: Show final report with scores and feedback for each Q&A."""
+    """Show final report with scores and feedback for each Q&A."""
     db_session_id = session.get('db_session_id')
     if not db_session_id:
         return redirect(url_for('dashboard'))
-    
+
     interview_type, role, resume_data, _ = db.get_session(db_session_id)
     qa_list = db.get_qa_records(db_session_id)
-    
-    total_score = sum([qa['score'] for qa in qa_list])
-    overall = round(total_score / len(qa_list), 2) if qa_list else 0
-    
+
+    valid_scores = [qa['score'] for qa in qa_list if qa['score'] > 0]
+    overall = round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else 0.0
+
     return render_template('report_placeholder.html',
                            interview_type=interview_type,
                            role=role,

@@ -197,6 +197,17 @@ def get_session(session_id):
     return None, None, {}, []
 
 
+def get_session_row(session_id):
+    """Returns the full sessions row as a dict (including overall_score) or None."""
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM sessions WHERE id = ?', (session_id,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def get_user_sessions(user_id):
     """Returns all interview sessions for a user, newest first."""
     conn = sqlite3.connect(DB_FILE)

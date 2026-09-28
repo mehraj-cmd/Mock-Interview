@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import time
 import requests
 from dotenv import load_dotenv
 
@@ -71,7 +72,24 @@ def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None, temper
                 return response.text
         except Exception as e:
             last_error = e
-            print(f"[AI Client] Gemini model '{model}' failed: {e}")
+            err_str = str(e)
+            # If rate-limited (429), parse the suggested retry delay and wait
+            if '429' in err_str or 'RESOURCE_EXHAUSTED' in err_str:
+                import re as _re
+                match = _re.search(r"retryDelay['\"]?\s*:\s*['\"]?(\d+)", err_str)
+                wait_sec = int(match.group(1)) if match else 15
+                wait_sec = min(wait_sec, 30)  # cap at 30s
+                print(f"[AI Client] Gemini '{model}' rate-limited. Waiting {wait_sec}s then retrying...")
+                time.sleep(wait_sec)
+                try:
+                    response = client.models.generate_content(model=model, contents=prompt, config=config)
+                    if response and response.text:
+                        return response.text
+                except Exception as e2:
+                    last_error = e2
+                    print(f"[AI Client] Gemini '{model}' retry also failed: {e2}")
+            else:
+                print(f"[AI Client] Gemini model '{model}' failed: {err_str}")
             continue
 
     raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
@@ -84,7 +102,7 @@ def call_grok(prompt: str, json_mode: bool = True) -> str:
 
     is_xai = grok_key.startswith("xai-")
     endpoint = "https://api.x.ai/v1/chat/completions" if is_xai else "https://api.groq.com/openai/v1/chat/completions"
-    models_to_try = ["grok-2-latest", "grok-beta"] if is_xai else ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    models_to_try = ["grok-3-mini-fast", "grok-3-fast", "grok-3-mini"] if is_xai else ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
     headers = {
         "Authorization": f"Bearer {grok_key}",
