@@ -43,7 +43,7 @@ def has_valid_api_key(custom_key: str = None) -> bool:
     gemini_key, grok_key = get_api_keys(custom_key=custom_key)
     return bool(gemini_key or grok_key)
 
-def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None) -> str:
+def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None, temperature: float = 0.7) -> str:
     """Calls Gemini API via official google-genai SDK with model fallback."""
     from google import genai
     from google.genai import types
@@ -54,7 +54,8 @@ def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None) -> str
 
     client = genai.Client(api_key=gemini_key)
     config = types.GenerateContentConfig(
-        response_mime_type="application/json" if json_mode else "text/plain"
+        response_mime_type="application/json" if json_mode else "text/plain",
+        temperature=temperature
     )
 
     models_to_try = ['gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-flash-latest']
@@ -125,7 +126,7 @@ def call_grok(prompt: str, json_mode: bool = True) -> str:
 
     raise RuntimeError(f"All Grok models failed. Last error: {last_error}")
 
-def generate_ai_completion(prompt: str, json_mode: bool = True, api_key: str = None):
+def generate_ai_completion(prompt: str, json_mode: bool = True, api_key: str = None, temperature: float = 0.7):
     """
     Executes AI completion with automatic failover:
     1. Primary: Gemini (if configured or passed via api_key)
@@ -145,7 +146,7 @@ def generate_ai_completion(prompt: str, json_mode: bool = True, api_key: str = N
     if gemini_key:
         try:
             print("[AI Client] Requesting completion from Gemini...")
-            raw_text = call_gemini(prompt, json_mode=json_mode, api_key=gemini_key)
+            raw_text = call_gemini(prompt, json_mode=json_mode, api_key=gemini_key, temperature=temperature)
             if json_mode:
                 return json.loads(clean_json_string(raw_text))
             return raw_text

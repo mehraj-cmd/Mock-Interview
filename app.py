@@ -440,15 +440,15 @@ def process_grades():
             db.update_qa_grade(
                 session_id=db_session_id,
                 q_index=qa['q_index'],
-                score=grade.get('score', 0),
+                score=grade.get('score_out_of_10', grade.get('score', 0) * 2),
                 feedback=grade.get('feedback', ''),
                 improvement_tip=grade.get('improvement_tip', '')
             )
 
-    # Calculate and store overall score on session
+    # Calculate and store overall score on session (average of per-question 1-10 scores)
     graded_records = db.get_qa_records(db_session_id)
     if graded_records:
-        overall = round(sum(r['score'] for r in graded_records) / len(graded_records), 2)
+        overall = round(sum(r['score'] for r in graded_records) / len(graded_records), 1)
         db.update_session_score(db_session_id, overall)
 
     return redirect(url_for('report_card'))
