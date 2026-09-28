@@ -1,141 +1,179 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MockMaster AI — Interview Setup</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        const rolesData = {
-            "Software Engineering": [
-                "Software Development Engineer (SDE)",
-                "Frontend Developer",
-                "Backend Developer",
-                "Full Stack Developer",
-                "Mobile Developer (iOS/Android)"
-            ],
-            "Data & AI": [
-                "Data Analyst",
-                "Data Scientist",
-                "Machine Learning Engineer",
-                "Data Engineer"
-            ],
-            "Design & Product": [
-                "Product Manager",
-                "UX/UI Designer",
-                "Product Designer"
-            ],
-            "IT & Infrastructure": [
-                "DevOps Engineer",
-                "Cloud Architect",
-                "Cybersecurity Analyst"
-            ],
-            "Business & Other": [
-                "Business Analyst",
-                "Marketing Manager",
-                "Sales / Account Manager",
-                "General / Other"
-            ]
-        };
+{% extends "base.html" %}
+{% block title %}Setup Interview | MockMaster AI{% endblock %}
 
-        function updateRoles() {
-            const categorySelect = document.getElementById("category");
-            const roleSelect = document.getElementById("role");
-            const selectedCategory = categorySelect.value;
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full flex-grow flex flex-col justify-center">
+    
+    <!-- Progress Indicator -->
+    <div class="mb-12">
+        <div class="flex items-center justify-between relative">
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-800 rounded-full z-0"></div>
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1/3 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500"></div>
             
-            roleSelect.innerHTML = '<option value="" disabled selected>Select a role...</option>';
-            
-            if (selectedCategory && rolesData[selectedCategory]) {
-                rolesData[selectedCategory].forEach(function(role) {
-                    const option = document.createElement("option");
-                    option.value = role;
-                    option.textContent = role;
-                    roleSelect.appendChild(option);
-                });
-            }
-        }
-        
-        function showLoading(form) {
-            form.querySelector('#submit-btn').style.display = 'none';
-            form.querySelector('#loading-ui').style.display = 'flex';
-        }
-    </script>
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎯</div>
-            MockMaster AI
-        </a>
-        <span class="navbar-tag">Beta</span>
-    </nav>
-
-    <div class="page-wrapper">
-        <div class="container">
-            
-            <!-- Step Indicator -->
-            <div class="step-indicator">
-                <div class="step-dot completed">✓</div>
-                <div class="step-line completed"></div>
-                <div class="step-dot active">2</div>
-                <div class="step-line"></div>
-                <div class="step-dot">3</div>
-                <div class="step-line"></div>
-                <div class="step-dot">4</div>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-brand-900 flex items-center justify-center text-brand-400 font-bold border-2 border-brand-500 shadow-[0_0_10px_rgba(99,102,241,0.3)]"><i class="fa-solid fa-check"></i></div>
+                <span class="text-xs font-medium text-brand-400 mt-2 absolute -bottom-6 whitespace-nowrap">Resume</span>
             </div>
-
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="flash-message">⚠️ {{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <h1>⚙️ Interview Setup</h1>
-            <p class="subtitle">Great — your resume has been analyzed! Now configure your mock interview session below.</p>
-            
-            <form action="/save_setup" method="POST" onsubmit="showLoading(this)">
-                <div class="form-group">
-                    <label for="interview_type">Interview Type</label>
-                    <select name="interview_type" id="interview_type" required>
-                        <option value="" disabled selected>Select a type...</option>
-                        <option value="Technical">Technical (Coding / Algorithms)</option>
-                        <option value="HR/Behavioral">HR / Behavioral</option>
-                        <option value="System Design">System Design</option>
-                        <option value="Case Study">Case Study / Consulting</option>
-                        <option value="Management">Management / Leadership</option>
-                        <option value="Pair Programming">Pair Programming</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="category">Job Category</label>
-                    <select id="category" onchange="updateRoles()" required>
-                        <option value="" disabled selected>Select a category...</option>
-                        <option value="Software Engineering">Software Engineering</option>
-                        <option value="Data & AI">Data & AI</option>
-                        <option value="Design & Product">Design & Product</option>
-                        <option value="IT & Infrastructure">IT & Infrastructure</option>
-                        <option value="Business & Other">Business & Other</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="role">Target Role</label>
-                    <select name="role" id="role" required>
-                        <option value="" disabled selected>Select a category first...</option>
-                    </select>
-                </div>
-                
-                <button type="submit" id="submit-btn">Generate Questions →</button>
-                <div id="loading-ui" class="loading-text" style="display:none; align-items:center; justify-content:center;">
-                    🧠 AI is crafting your questions <div class="loader"></div>
-                </div>
-            </form>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(99,102,241,0.5)] border-2 border-brand-400">2</div>
+                <span class="text-xs font-medium text-brand-400 mt-2 absolute -bottom-6 whitespace-nowrap">Setup</span>
+            </div>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-slate-700">3</div>
+                <span class="text-xs font-medium text-slate-500 mt-2 absolute -bottom-6 whitespace-nowrap">Interview</span>
+            </div>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-slate-700">4</div>
+                <span class="text-xs font-medium text-slate-500 mt-2 absolute -bottom-6 whitespace-nowrap">Report</span>
+            </div>
         </div>
     </div>
-</body>
-</html>
+
+    <div class="text-center mb-10">
+        <h1 class="text-3xl md:text-4xl font-heading font-extrabold text-white mb-4">Configure your <span class="gradient-text">Interview</span></h1>
+        <p class="text-slate-400 text-lg">Your resume looks great! Now, what kind of interview are you practicing for?</p>
+    </div>
+
+    <form action="/save_setup" method="POST" id="setupForm" onsubmit="return validateAndShowLoading()">
+        
+        <div class="glass-panel rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-700/50 mb-8">
+            <h3 class="text-lg font-heading font-semibold text-white mb-4"><i class="fa-solid fa-layer-group text-brand-400 mr-2"></i> Select Interview Type</h3>
+            
+            <!-- Hidden input to store selected type -->
+            <input type="hidden" name="interview_type" id="interview_type" value="{{ default_type }}" required>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                <!-- Type Card 1 -->
+                <div onclick="selectType('Technical')" class="type-card cursor-pointer rounded-xl border border-slate-700 bg-slate-800/30 p-4 transition-all hover:bg-slate-800 hover:border-brand-400/50 {% if default_type == 'Technical' %}ring-2 ring-brand-500 bg-brand-900/20 border-brand-500{% endif %}" data-type="Technical">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3 text-lg"><i class="fa-solid fa-code"></i></div>
+                    <h4 class="font-medium text-white mb-1">Technical</h4>
+                    <p class="text-xs text-slate-400">Coding & Algorithms</p>
+                </div>
+                <!-- Type Card 2 -->
+                <div onclick="selectType('HR/Behavioral')" class="type-card cursor-pointer rounded-xl border border-slate-700 bg-slate-800/30 p-4 transition-all hover:bg-slate-800 hover:border-brand-400/50 {% if default_type == 'HR/Behavioral' %}ring-2 ring-brand-500 bg-brand-900/20 border-brand-500{% endif %}" data-type="HR/Behavioral">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3 text-lg"><i class="fa-solid fa-users"></i></div>
+                    <h4 class="font-medium text-white mb-1">HR / Behavioral</h4>
+                    <p class="text-xs text-slate-400">Leadership & Soft Skills</p>
+                </div>
+                <!-- Type Card 3 -->
+                <div onclick="selectType('System Design')" class="type-card cursor-pointer rounded-xl border border-slate-700 bg-slate-800/30 p-4 transition-all hover:bg-slate-800 hover:border-brand-400/50 {% if default_type == 'System Design' %}ring-2 ring-brand-500 bg-brand-900/20 border-brand-500{% endif %}" data-type="System Design">
+                    <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3 text-lg"><i class="fa-solid fa-network-wired"></i></div>
+                    <h4 class="font-medium text-white mb-1">System Design</h4>
+                    <p class="text-xs text-slate-400">Architecture & Scalability</p>
+                </div>
+                <!-- Type Card 4 -->
+                <div onclick="selectType('Case Study')" class="type-card cursor-pointer rounded-xl border border-slate-700 bg-slate-800/30 p-4 transition-all hover:bg-slate-800 hover:border-brand-400/50 {% if default_type == 'Case Study' %}ring-2 ring-brand-500 bg-brand-900/20 border-brand-500{% endif %}" data-type="Case Study">
+                    <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center mb-3 text-lg"><i class="fa-solid fa-briefcase"></i></div>
+                    <h4 class="font-medium text-white mb-1">Case Study</h4>
+                    <p class="text-xs text-slate-400">Consulting & Strategy</p>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-heading font-semibold text-white mb-4 pt-6 border-t border-slate-700/50"><i class="fa-solid fa-user-tie text-brand-400 mr-2"></i> Target Role</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="space-y-2">
+                    <label for="category" class="block text-sm font-medium text-slate-300">Job Category</label>
+                    <div class="relative">
+                        <select id="category" onchange="updateRoles()" required class="glass-input block w-full px-4 py-3 rounded-xl sm:text-sm appearance-none">
+                            <option value="" disabled selected class="bg-slate-800 text-slate-400">Select industry...</option>
+                            <option value="Software Engineering" class="bg-slate-800 text-white">Software Engineering</option>
+                            <option value="Data & AI" class="bg-slate-800 text-white">Data & AI</option>
+                            <option value="Design & Product" class="bg-slate-800 text-white">Design & Product</option>
+                            <option value="IT & Infrastructure" class="bg-slate-800 text-white">IT & Infrastructure</option>
+                            <option value="Business & Other" class="bg-slate-800 text-white">Business & Other</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400"><i class="fa-solid fa-chevron-down text-xs"></i></div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="role" class="block text-sm font-medium text-slate-300">Specific Role</label>
+                    <!-- Changed to a text input with datalist so default_role works easily, or we can use the old JS approach. Let's use an input with datalist for better UX and allowing custom roles. -->
+                    <div class="relative">
+                        <input type="text" name="role" id="role" list="role-options" required value="{{ default_role }}" placeholder="e.g. Frontend Developer" class="glass-input block w-full px-4 py-3 rounded-xl sm:text-sm">
+                        <datalist id="role-options">
+                            <!-- Populated by JS -->
+                        </datalist>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" id="submit-btn" class="gradient-btn w-full md:w-auto px-10 py-3.5 rounded-xl text-base font-bold text-white shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
+                Generate Questions <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden flex-col items-center justify-center py-8">
+            <div class="relative w-16 h-16 mb-4">
+                <div class="absolute inset-0 rounded-full border-t-2 border-brand-500 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-brand-400"><i class="fa-solid fa-brain"></i></div>
+            </div>
+            <h3 class="text-lg font-medium text-white mb-1">AI is crafting your interview...</h3>
+            <p class="text-sm text-slate-400">Analyzing your resume and role requirements.</p>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const rolesData = {
+        "Software Engineering": ["Software Development Engineer (SDE)", "Frontend Developer", "Backend Developer", "Full Stack Developer", "Mobile Developer (iOS/Android)"],
+        "Data & AI": ["Data Analyst", "Data Scientist", "Machine Learning Engineer", "Data Engineer"],
+        "Design & Product": ["Product Manager", "UX/UI Designer", "Product Designer"],
+        "IT & Infrastructure": ["DevOps Engineer", "Cloud Architect", "Cybersecurity Analyst"],
+        "Business & Other": ["Business Analyst", "Marketing Manager", "Sales / Account Manager", "General / Other"]
+    };
+
+    function updateRoles() {
+        const categorySelect = document.getElementById("category");
+        const roleDatalist = document.getElementById("role-options");
+        const roleInput = document.getElementById("role");
+        const selectedCategory = categorySelect.value;
+        
+        roleDatalist.innerHTML = '';
+        
+        if (selectedCategory && rolesData[selectedCategory]) {
+            rolesData[selectedCategory].forEach(function(role) {
+                const option = document.createElement("option");
+                option.value = role;
+                roleDatalist.appendChild(option);
+            });
+            // Don't auto-clear if they have a default, just offer suggestions
+        }
+    }
+
+    function selectType(type) {
+        document.getElementById('interview_type').value = type;
+        document.querySelectorAll('.type-card').forEach(card => {
+            if (card.dataset.type === type) {
+                card.classList.add('ring-2', 'ring-brand-500', 'bg-brand-900/20', 'border-brand-500');
+            } else {
+                card.classList.remove('ring-2', 'ring-brand-500', 'bg-brand-900/20', 'border-brand-500');
+            }
+        });
+    }
+
+    function validateAndShowLoading() {
+        if (!document.getElementById('interview_type').value) {
+            Swal.fire({
+                icon: 'warning', text: 'Please select an interview type.',
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                background: '#1e293b', color: '#fff'
+            });
+            return false;
+        }
+
+        document.getElementById('setupForm').querySelector('.glass-panel').classList.add('hidden');
+        document.getElementById('submit-btn').parentElement.classList.add('hidden');
+        document.getElementById('loading-state').classList.remove('hidden');
+        document.getElementById('loading-state').classList.add('flex');
+        
+        return true;
+    }
+</script>
+{% endblock %}

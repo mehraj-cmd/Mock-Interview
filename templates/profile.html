@@ -1,145 +1,136 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MockMaster AI — Profile & Settings</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .navbar-user { display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; }
-        .profile-avatar-big { width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 32px; color: white; margin: 0 auto 16px; }
-        .joined-date { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; text-align: center; }
-        
-        .settings-section {
-            background: rgba(0,0,0,0.15);
-            border: 1px solid var(--card-border);
-            border-radius: var(--radius-sm);
-            padding: 24px;
-            margin-bottom: 24px;
-            text-align: left;
-        }
-        .settings-section h3 {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 16px;
-            color: var(--text-primary);
-            border-bottom: 1px solid var(--card-border);
-            padding-bottom: 12px;
-        }
-        
-        .danger-zone { border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
-        .danger-zone h3 { color: #fca5a5; border-color: rgba(239, 68, 68, 0.2); }
-        .btn-danger {
-            background: rgba(239, 68, 68, 0.15);
-            color: #fca5a5;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 10px 20px;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: white; }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <a href="/dashboard" class="navbar-brand">
-            <div class="logo-icon">🎯</div>
-            MockMaster AI
-        </a>
-        <div class="navbar-user">
-            <a href="/dashboard" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 500;">Dashboard</a>
-            <div class="avatar">{{ current_user.name[0].upper() }}</div>
-            <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-size: 13px;">Sign out</a>
+{% extends "base.html" %}
+{% block title %}Profile Settings | MockMaster AI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+    
+    <div class="mb-8 flex items-center gap-6">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-3xl border-4 border-slate-800">
+            {{ user.name[0].upper() }}
         </div>
-    </nav>
-
-    <div class="page-wrapper" style="align-items: flex-start;">
-        <div class="container" style="max-width: 680px;">
-
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        {% if 'deleted' in message %}
-                            <div class="flash-message" style="background: rgba(239,68,68,0.15); color: #fca5a5; border-color: rgba(239,68,68,0.25);">{{ message }}</div>
-                        {% else %}
-                            <div class="flash-message" style="background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(16,185,129,0.25);">{{ message }}</div>
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <div class="profile-avatar-big">{{ user.name[0].upper() }}</div>
-            <h1 style="text-align: center;">Profile & Settings</h1>
-            <p class="joined-date">📅 Member since {{ user.get('created_at', '')[:10] }}</p>
-
-            <form action="/profile" method="POST">
-                
-                <!-- Account Section -->
-                <div class="settings-section">
-                    <h3>👤 Account Information</h3>
-                    <div class="form-group">
-                        <label for="name">Display Name</label>
-                        <input type="text" id="name" name="name" value="{{ user.name }}" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Email Address</label>
-                        <input type="email" value="{{ user.email }}" disabled>
-                    </div>
-                </div>
-
-                <!-- Interview Preferences -->
-                <div class="settings-section">
-                    <h3>🎯 Interview Preferences</h3>
-                    <div class="form-group">
-                        <label for="default_type">Default Interview Type</label>
-                        <select name="default_type" id="default_type">
-                            <option value="">No default</option>
-                            <option value="Technical" {% if user.default_type == 'Technical' %}selected{% endif %}>Technical (Coding / Algorithms)</option>
-                            <option value="HR/Behavioral" {% if user.default_type == 'HR/Behavioral' %}selected{% endif %}>HR / Behavioral</option>
-                            <option value="System Design" {% if user.default_type == 'System Design' %}selected{% endif %}>System Design</option>
-                            <option value="Case Study" {% if user.default_type == 'Case Study' %}selected{% endif %}>Case Study / Consulting</option>
-                            <option value="Management" {% if user.default_type == 'Management' %}selected{% endif %}>Management / Leadership</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="default_role">Default Target Role</label>
-                        <input type="text" id="default_role" name="default_role" value="{{ user.default_role or '' }}" placeholder="e.g. Software Engineer, Product Manager">
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label for="saved_resume">Saved Resume (auto-fills on new interviews)</label>
-                        <textarea id="saved_resume" name="saved_resume" rows="6" placeholder="Paste your resume here...">{{ user.saved_resume or '' }}</textarea>
-                    </div>
-                </div>
-
-                <!-- Advanced Settings -->
-                <div class="settings-section">
-                    <h3>⚙️ Advanced Settings</h3>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label for="custom_api_key">Custom Gemini API Key (Optional)</label>
-                        <input type="password" id="custom_api_key" name="custom_api_key" value="{{ user.custom_api_key or '' }}" placeholder="Paste your own API key to bypass server limits">
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:6px;">If left blank, the app will use the system's default key. Your key is securely saved and only used for your sessions.</p>
-                    </div>
-                </div>
-
-                <button type="submit" style="width:100%; margin-bottom: 32px;">Save All Changes ✓</button>
-            </form>
-
-            <!-- Danger Zone -->
-            <div class="settings-section danger-zone">
-                <h3>⚠️ Danger Zone</h3>
-                <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">This will permanently delete all your past interview sessions, questions, answers, and scores. This action cannot be undone.</p>
-                <form action="/clear_history" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete all your interview history?');">
-                    <button type="submit" class="btn-danger">Delete Interview History</button>
-                </form>
-            </div>
-
-            <div style="text-align: center; margin-top: 24px;">
-                <a href="/dashboard" style="color: var(--text-muted); font-size: 14px; text-decoration: none;">← Back to Dashboard</a>
-            </div>
+        <div>
+            <h1 class="text-3xl font-heading font-bold text-white mb-1">Profile & Settings</h1>
+            <p class="text-slate-400 text-sm"><i class="fa-regular fa-calendar-days mr-1"></i> Member since {{ user.get('created_at', '')[:10] }}</p>
         </div>
     </div>
-</body>
-</html>
+
+    <form action="/profile" method="POST" class="space-y-6">
+        
+        <!-- Account Info -->
+        <div class="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700/50 bg-slate-800/30">
+                <h3 class="text-lg font-heading font-semibold text-white"><i class="fa-solid fa-user text-brand-400 mr-2"></i> Account Information</h3>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label for="name" class="block text-sm font-medium text-slate-300">Display Name</label>
+                        <input type="text" id="name" name="name" value="{{ user.name }}" required class="glass-input block w-full px-3 py-2.5 rounded-lg sm:text-sm">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-medium text-slate-300">Email Address <span class="text-xs text-slate-500 ml-1">(Cannot be changed)</span></label>
+                        <input type="email" value="{{ user.email }}" disabled class="glass-input block w-full px-3 py-2.5 rounded-lg sm:text-sm opacity-50 cursor-not-allowed bg-slate-900">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preferences -->
+        <div class="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700/50 bg-slate-800/30">
+                <h3 class="text-lg font-heading font-semibold text-white"><i class="fa-solid fa-sliders text-brand-400 mr-2"></i> Interview Preferences</h3>
+            </div>
+            <div class="p-6 space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div class="space-y-1.5">
+                        <label for="default_type" class="block text-sm font-medium text-slate-300">Default Interview Type</label>
+                        <select name="default_type" id="default_type" class="glass-input block w-full px-3 py-2.5 rounded-lg sm:text-sm appearance-none">
+                            <option value="" class="bg-slate-800 text-white">No default (Ask every time)</option>
+                            <option value="Technical" class="bg-slate-800 text-white" {% if user.default_type == 'Technical' %}selected{% endif %}>Technical (Coding / Algorithms)</option>
+                            <option value="HR/Behavioral" class="bg-slate-800 text-white" {% if user.default_type == 'HR/Behavioral' %}selected{% endif %}>HR / Behavioral</option>
+                            <option value="System Design" class="bg-slate-800 text-white" {% if user.default_type == 'System Design' %}selected{% endif %}>System Design</option>
+                            <option value="Case Study" class="bg-slate-800 text-white" {% if user.default_type == 'Case Study' %}selected{% endif %}>Case Study / Consulting</option>
+                            <option value="Management" class="bg-slate-800 text-white" {% if user.default_type == 'Management' %}selected{% endif %}>Management / Leadership</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1.5">
+                        <label for="default_role" class="block text-sm font-medium text-slate-300">Default Target Role</label>
+                        <input type="text" id="default_role" name="default_role" value="{{ user.default_role or '' }}" placeholder="e.g. Software Engineer" class="glass-input block w-full px-3 py-2.5 rounded-lg sm:text-sm">
+                    </div>
+                </div>
+                
+                <div class="space-y-1.5">
+                    <label for="saved_resume" class="block text-sm font-medium text-slate-300">Saved Resume <span class="text-xs text-slate-500 font-normal ml-1">(Auto-fills on new interviews)</span></label>
+                    <textarea id="saved_resume" name="saved_resume" rows="5" class="glass-input block w-full px-3 py-2.5 rounded-lg sm:text-sm font-mono text-xs" placeholder="Paste your resume here...">{{ user.saved_resume or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced / API -->
+        <div class="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-700/50 bg-slate-800/30">
+                <h3 class="text-lg font-heading font-semibold text-white"><i class="fa-solid fa-key text-brand-400 mr-2"></i> Advanced Settings</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-1.5">
+                    <label for="custom_api_key" class="block text-sm font-medium text-slate-300">Custom Gemini API Key <span class="text-xs text-brand-400 ml-1">Optional</span></label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-lock text-slate-500"></i>
+                        </div>
+                        <input type="password" id="custom_api_key" name="custom_api_key" value="{{ user.custom_api_key or '' }}" class="glass-input block w-full pl-10 pr-3 py-2.5 rounded-lg sm:text-sm" placeholder="Paste your own API key to bypass server limits">
+                    </div>
+                    <p class="text-xs text-slate-400 mt-2">If left blank, the app will use the system's default key. Your key is securely saved and only used for your sessions.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+            <button type="submit" class="gradient-btn inline-flex justify-center items-center py-2.5 px-6 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 focus:ring-offset-slate-900">
+                <i class="fa-solid fa-check mr-2"></i> Save All Changes
+            </button>
+        </div>
+    </form>
+
+    <!-- Danger Zone -->
+    <div class="mt-12 glass-panel rounded-2xl border border-red-500/30 overflow-hidden bg-red-900/10 relative">
+        <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+        <div class="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h3 class="text-lg font-heading font-semibold text-red-400 mb-1"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Danger Zone</h3>
+                <p class="text-sm text-slate-400">Permanently delete all your past interview sessions, questions, and scores. This cannot be undone.</p>
+            </div>
+            <form action="/clear_history" method="POST" id="dangerForm">
+                <button type="button" onclick="confirmDelete()" class="inline-flex justify-center items-center py-2.5 px-5 border border-red-500/50 rounded-lg shadow-sm text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500 hover:text-white transition-colors focus:outline-none">
+                    <i class="fa-solid fa-trash-can mr-2"></i> Clear History
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete() {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this! All interview history will be lost.",
+        icon: 'warning',
+        showCancelButton: true,
+        background: '#1e293b',
+        color: '#fff',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Yes, delete it!',
+        customClass: {
+            popup: 'glass-panel border border-slate-700'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('dangerForm').submit();
+        }
+    })
+}
+</script>
+{% endblock %}

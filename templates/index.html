@@ -1,154 +1,233 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MockMaster AI — Resume</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .tab-bar { display: flex; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 24px; gap: 4px; }
-        .tab-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s ease; box-shadow: none; transform: none; }
-        .tab-btn:hover { transform: none; box-shadow: none; background: rgba(255,255,255,0.05); color: var(--text-primary); }
-        .tab-btn.active { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.35); }
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
-        .drop-zone { border: 2px dashed var(--glass-border); border-radius: var(--radius-sm); padding: 40px 24px; text-align: center; cursor: pointer; transition: all 0.3s ease; background: rgba(0,0,0,0.15); margin-bottom: 24px; }
-        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: rgba(79,70,229,0.07); }
-        .drop-zone .dz-icon { font-size: 40px; margin-bottom: 12px; display: block; }
-        .drop-zone .dz-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
-        .drop-zone .dz-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
-        .drop-zone input[type="file"] { display: none; }
-        .file-chosen { display: none; align-items: center; gap: 10px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 24px; font-size: 14px; font-weight: 600; color: #6ee7b7; }
-        .file-chosen .remove-file { margin-left: auto; cursor: pointer; background: none; border: none; color: var(--text-muted); font-size: 18px; padding: 0; transform: none; box-shadow: none; }
-        .file-chosen .remove-file:hover { color: var(--danger); transform: none; box-shadow: none; }
-        .save-check { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-size: 14px; color: var(--text-secondary); text-align: left; }
-        .save-check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
-        .navbar-user { display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; }
-    </style>
-    <script>
-        function showLoading(form) {
-            const activePanel = form.querySelector('.tab-panel.active');
-            if (activePanel && activePanel.id === 'tab-pdf') {
-                const fileInput = document.getElementById('resume_pdf');
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    alert('Please select a PDF file first.');
-                    return false;
-                }
-            }
-            form.querySelector('#submit-btn').style.display = 'none';
-            form.querySelector('#loading-ui').style.display = 'flex';
-        }
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            const textarea = document.getElementById('resume_text');
-            const fileInput = document.getElementById('resume_pdf');
-            if (tab === 'text') { textarea.setAttribute('required', ''); fileInput.removeAttribute('required'); }
-            else { textarea.removeAttribute('required'); }
-        }
-        function handleFileSelect(input) {
-            const file = input.files[0];
-            if (!file) return;
-            if (!file.name.endsWith('.pdf')) { alert('Only PDF files are supported.'); input.value = ''; return; }
-            document.getElementById('chosen-name').textContent = '📄 ' + file.name;
-            document.getElementById('file-chosen-box').style.display = 'flex';
-            document.getElementById('drop-zone-inner').style.display = 'none';
-        }
-        function removeFile() {
-            document.getElementById('resume_pdf').value = '';
-            document.getElementById('file-chosen-box').style.display = 'none';
-            document.getElementById('drop-zone-inner').style.display = 'block';
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            const zone = document.getElementById('pdf-drop-zone');
-            if (!zone) return;
-            zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-            zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-            zone.addEventListener('drop', e => {
-                e.preventDefault(); zone.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) { const input = document.getElementById('resume_pdf'); input.files = files; handleFileSelect(input); }
-            });
-        });
-    </script>
-</head>
-<body>
-    <nav class="navbar">
-        <a href="/dashboard" class="navbar-brand">
-            <div class="logo-icon">🎯</div>
-            MockMaster AI
-        </a>
-        <div class="navbar-user">
-            <a href="/dashboard" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Dashboard</a>
-            <a href="/profile" style="color: var(--text-secondary); text-decoration: none; font-size: 14px;">Profile</a>
-            <div class="avatar">{{ current_user.name[0].upper() }}</div>
-            <a href="/logout" style="color: var(--text-muted); text-decoration: none; font-size: 13px;">Sign out</a>
-        </div>
-    </nav>
+{% extends "base.html" %}
+{% block title %}Upload Resume | MockMaster AI{% endblock %}
 
-    <div class="page-wrapper">
-        <div class="container">
-
-            <div class="step-indicator">
-                <div class="step-dot active">1</div>
-                <div class="step-line"></div>
-                <div class="step-dot">2</div>
-                <div class="step-line"></div>
-                <div class="step-dot">3</div>
-                <div class="step-line"></div>
-                <div class="step-dot">4</div>
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full flex-grow flex flex-col justify-center">
+    
+    <!-- Progress Indicator -->
+    <div class="mb-12">
+        <div class="flex items-center justify-between relative">
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-800 rounded-full z-0"></div>
+            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-0 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500"></div>
+            
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(99,102,241,0.5)] border-2 border-brand-400">1</div>
+                <span class="text-xs font-medium text-brand-400 mt-2 absolute -bottom-6 whitespace-nowrap">Resume</span>
             </div>
-
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}{% for message in messages %}<div class="flash-message">⚠️ {{ message }}</div>{% endfor %}{% endif %}
-            {% endwith %}
-
-            <h1>📄 Your Resume</h1>
-            <p class="subtitle">Paste your resume text or upload a PDF — the AI will extract your skills to personalize your questions.</p>
-
-            <form action="/process_resume" method="POST" enctype="multipart/form-data" onsubmit="return showLoading(this) !== false">
-                <div class="tab-bar">
-                    <button type="button" class="tab-btn active" data-tab="text" onclick="switchTab('text')">✏️ Paste Text</button>
-                    <button type="button" class="tab-btn" data-tab="pdf" onclick="switchTab('pdf')">📎 Upload PDF</button>
-                </div>
-
-                <div class="tab-panel active" id="tab-text">
-                    <textarea id="resume_text" name="resume_text" rows="10"
-                        placeholder="Paste your full resume here..."
-                        required>{{ saved_resume }}</textarea>
-                </div>
-
-                <div class="tab-panel" id="tab-pdf">
-                    <div class="drop-zone" id="pdf-drop-zone" onclick="document.getElementById('resume_pdf').click()">
-                        <div id="drop-zone-inner">
-                            <span class="dz-icon">☁️</span>
-                            <div class="dz-title">Click to browse or drag & drop</div>
-                            <div class="dz-sub">PDF only · Max 10 MB</div>
-                            <button type="button" style="padding: 10px 24px; font-size:14px;">Browse File</button>
-                        </div>
-                        <input type="file" id="resume_pdf" name="resume_pdf" accept=".pdf" onchange="handleFileSelect(this)">
-                    </div>
-                    <div class="file-chosen" id="file-chosen-box">
-                        <span id="chosen-name"></span>
-                        <button type="button" class="remove-file" onclick="removeFile()">✕</button>
-                    </div>
-                </div>
-
-                <!-- Save to profile checkbox -->
-                <label class="save-check">
-                    <input type="checkbox" name="save_resume" checked>
-                    Save this resume to my profile for future interviews
-                </label>
-
-                <button type="submit" id="submit-btn">Analyze Resume →</button>
-                <div id="loading-ui" class="loading-text" style="display:none; align-items:center; justify-content:center;">
-                    ✨ AI is reading your resume <div class="loader"></div>
-                </div>
-            </form>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-slate-700">2</div>
+                <span class="text-xs font-medium text-slate-500 mt-2 absolute -bottom-6 whitespace-nowrap">Setup</span>
+            </div>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-slate-700">3</div>
+                <span class="text-xs font-medium text-slate-500 mt-2 absolute -bottom-6 whitespace-nowrap">Interview</span>
+            </div>
+            <div class="relative z-10 flex flex-col items-center">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 font-bold border-2 border-slate-700">4</div>
+                <span class="text-xs font-medium text-slate-500 mt-2 absolute -bottom-6 whitespace-nowrap">Report</span>
+            </div>
         </div>
     </div>
-</body>
-</html>
+
+    <div class="text-center mb-10">
+        <h1 class="text-3xl md:text-4xl font-heading font-extrabold text-white mb-4">Let's start with your <span class="gradient-text">Resume</span></h1>
+        <p class="text-slate-400 text-lg max-w-2xl mx-auto">Upload your PDF or paste your text. Our AI will analyze your experience to ask personalized, highly relevant questions.</p>
+    </div>
+
+    <div class="glass-panel rounded-3xl p-2 shadow-2xl border border-slate-700/50">
+        <form action="/process_resume" method="POST" enctype="multipart/form-data" id="resumeForm" onsubmit="return validateAndShowLoading()">
+            
+            <!-- Tab Switcher -->
+            <div class="flex p-1 bg-slate-900/50 rounded-2xl mb-6 border border-slate-700/30">
+                <button type="button" onclick="switchTab('text')" id="btn-tab-text" class="flex-1 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-brand-500 text-white shadow-lg">
+                    <i class="fa-solid fa-keyboard mr-2"></i> Paste Text
+                </button>
+                <button type="button" onclick="switchTab('pdf')" id="btn-tab-pdf" class="flex-1 py-3 text-sm font-medium rounded-xl transition-all duration-300 text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-file-pdf mr-2"></i> Upload PDF
+                </button>
+            </div>
+
+            <div class="p-4 md:p-6">
+                
+                <!-- Text Panel -->
+                <div id="panel-text" class="block animate-[fadeIn_0.3s_ease-out]">
+                    <textarea id="resume_text" name="resume_text" rows="10" 
+                        class="glass-input block w-full px-4 py-4 rounded-xl text-sm font-mono leading-relaxed" 
+                        placeholder="Paste your full resume here... The more detail, the better the questions." required>{{ saved_resume }}</textarea>
+                </div>
+
+                <!-- PDF Panel -->
+                <div id="panel-pdf" class="hidden animate-[fadeIn_0.3s_ease-out]">
+                    <div id="drop-zone" class="border-2 border-dashed border-slate-600 hover:border-brand-500 bg-slate-800/30 hover:bg-brand-500/5 rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 group" onclick="document.getElementById('resume_pdf').click()">
+                        
+                        <div id="drop-zone-content">
+                            <div class="w-20 h-20 mx-auto bg-slate-800 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-brand-500/20 transition-all duration-300">
+                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-brand-400 group-hover:text-brand-300"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-white mb-2">Click to upload or drag and drop</h3>
+                            <p class="text-sm text-slate-400 mb-6">PDF files only (Max 10MB)</p>
+                            <span class="inline-flex items-center px-4 py-2 border border-slate-600 rounded-lg text-sm font-medium text-slate-300 bg-slate-800 group-hover:bg-slate-700 transition-colors">
+                                Browse Files
+                            </span>
+                        </div>
+
+                        <input type="file" id="resume_pdf" name="resume_pdf" accept=".pdf" class="hidden" onchange="handleFileSelect(this)">
+                    </div>
+
+                    <!-- File Chosen State -->
+                    <div id="file-chosen-state" class="hidden items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mt-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                <i class="fa-solid fa-file-pdf text-xl"></i>
+                            </div>
+                            <div>
+                                <p id="chosen-filename" class="text-sm font-medium text-emerald-100"></p>
+                                <p class="text-xs text-emerald-400/70">Ready to analyze</p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="removeFile()" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 transition-colors">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Footer Options -->
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-700/50">
+                    <label class="flex items-center cursor-pointer group">
+                        <div class="relative flex items-center justify-center">
+                            <input type="checkbox" name="save_resume" class="peer sr-only" checked>
+                            <div class="w-5 h-5 border-2 border-slate-500 rounded bg-slate-800 peer-checked:bg-brand-500 peer-checked:border-brand-500 transition-all"></div>
+                            <i class="fa-solid fa-check absolute text-white text-xs opacity-0 peer-checked:opacity-100 transition-opacity"></i>
+                        </div>
+                        <span class="ml-3 text-sm font-medium text-slate-300 group-hover:text-white transition-colors">Save to my profile for future</span>
+                    </label>
+
+                    <button type="submit" id="submit-btn" class="gradient-btn w-full sm:w-auto px-8 py-3 rounded-xl text-sm font-bold text-white shadow-lg flex items-center justify-center gap-2">
+                        Continue to Setup <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loading-state" class="hidden mt-6 flex-col items-center justify-center py-8">
+                    <div class="relative w-16 h-16 mb-4">
+                        <div class="absolute inset-0 rounded-full border-t-2 border-brand-500 animate-spin"></div>
+                        <div class="absolute inset-2 rounded-full border-r-2 border-purple-500 animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                        <div class="absolute inset-0 flex items-center justify-center text-brand-400"><i class="fa-solid fa-robot"></i></div>
+                    </div>
+                    <h3 class="text-lg font-medium text-white mb-1">Processing resume...</h3>
+                    <p class="text-sm text-slate-400">Preparing your interview setup.</p>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTab = 'text';
+
+    function switchTab(tab) {
+        currentTab = tab;
+        const btnText = document.getElementById('btn-tab-text');
+        const btnPdf = document.getElementById('btn-tab-pdf');
+        const panelText = document.getElementById('panel-text');
+        const panelPdf = document.getElementById('panel-pdf');
+        const textarea = document.getElementById('resume_text');
+        const fileInput = document.getElementById('resume_pdf');
+
+        if (tab === 'text') {
+            btnText.className = "flex-1 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-brand-500 text-white shadow-lg";
+            btnPdf.className = "flex-1 py-3 text-sm font-medium rounded-xl transition-all duration-300 text-slate-400 hover:text-slate-200";
+            panelText.classList.remove('hidden');
+            panelPdf.classList.add('hidden');
+            textarea.setAttribute('required', '');
+            fileInput.removeAttribute('required');
+        } else {
+            btnPdf.className = "flex-1 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-brand-500 text-white shadow-lg";
+            btnText.className = "flex-1 py-3 text-sm font-medium rounded-xl transition-all duration-300 text-slate-400 hover:text-slate-200";
+            panelPdf.classList.remove('hidden');
+            panelText.classList.add('hidden');
+            textarea.removeAttribute('required');
+            // fileInput requirement handled in validation to prevent native popup bugs
+        }
+    }
+
+    function handleFileSelect(input) {
+        const file = input.files[0];
+        if (!file) return;
+        
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid File',
+                text: 'Please upload a PDF file.',
+                background: '#1e293b', color: '#fff', customClass: { popup: 'glass-panel border-slate-700' }
+            });
+            input.value = '';
+            return;
+        }
+
+        document.getElementById('chosen-filename').textContent = file.name;
+        document.getElementById('drop-zone').classList.add('hidden');
+        document.getElementById('file-chosen-state').classList.remove('hidden');
+        document.getElementById('file-chosen-state').classList.add('flex');
+    }
+
+    function removeFile() {
+        document.getElementById('resume_pdf').value = '';
+        document.getElementById('file-chosen-state').classList.add('hidden');
+        document.getElementById('file-chosen-state').classList.remove('flex');
+        document.getElementById('drop-zone').classList.remove('hidden');
+    }
+
+    function validateAndShowLoading() {
+        if (currentTab === 'pdf') {
+            const fileInput = document.getElementById('resume_pdf');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    text: 'Please upload a PDF file first.',
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                    background: '#1e293b', color: '#fff', customClass: { popup: 'glass-panel border-slate-700' }
+                });
+                return false;
+            }
+        }
+
+        document.getElementById('submit-btn').parentElement.classList.add('hidden');
+        document.getElementById('loading-state').classList.remove('hidden');
+        document.getElementById('loading-state').classList.add('flex');
+        
+        // Disable tab buttons
+        document.getElementById('btn-tab-text').disabled = true;
+        document.getElementById('btn-tab-pdf').disabled = true;
+        
+        return true;
+    }
+
+    // Drag and Drop
+    const dropZone = document.getElementById('drop-zone');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('border-brand-500', 'bg-brand-500/10'), false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-brand-500', 'bg-brand-500/10'), false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            document.getElementById('resume_pdf').files = files;
+            handleFileSelect(document.getElementById('resume_pdf'));
+        }
+    }, false);
+</script>
+{% endblock %}

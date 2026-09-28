@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MockMaster AI{% endblock %}</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 (Toast notifications) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            900: '#312e81',
+                        },
+                        dark: {
+                            900: '#0f172a',
+                            800: '#1e293b',
+                            700: '#334155',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-nav { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-input { background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s ease; }
+        .glass-input:focus { background: rgba(15, 23, 42, 0.8); border-color: #6366f1; outline: none; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        .gradient-text { background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-btn { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); transition: all 0.3s ease; }
+        .gradient-btn:hover { box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4); transform: translateY(-2px); }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="antialiased min-h-screen flex flex-col relative overflow-x-hidden selection:bg-brand-500 selection:text-white">
+    
+    <!-- Ambient Background Blobs -->
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-brand-900/30 blur-[120px] mix-blend-screen animate-pulse-slow"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-purple-900/20 blur-[150px] mix-blend-screen animate-pulse-slow" style="animation-delay: 2s;"></div>
+    </div>
+
+    <!-- Universal Navbar -->
+    {% if not hide_nav %}
+    <nav class="glass-nav fixed w-full z-50 top-0 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-2">
+                    <a href="/" class="flex items-center gap-3 group">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:scale-105 transition-transform">
+                            <i class="fa-solid fa-bullseye text-white text-sm"></i>
+                        </div>
+                        <span class="font-heading font-bold text-xl tracking-tight text-white group-hover:text-brand-100 transition-colors">MockMaster<span class="text-brand-400">.ai</span></span>
+                    </a>
+                </div>
+                
+                <!-- Nav Links -->
+                <div class="flex items-center gap-6">
+                    {% if current_user.is_authenticated %}
+                        <a href="/dashboard" class="text-sm font-medium text-slate-300 hover:text-white transition-colors"><i class="fa-solid fa-chart-line mr-2"></i>Dashboard</a>
+                        <div class="h-5 w-px bg-slate-700"></div>
+                        <div class="relative group cursor-pointer flex items-center gap-3">
+                            <a href="/profile" class="text-sm font-medium text-slate-300 hover:text-white transition-colors">{{ current_user.name.split(' ')[0] }}</a>
+                            <a href="/profile" class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-brand-400 font-bold text-sm hover:border-brand-500 transition-colors">
+                                {{ current_user.name[0].upper() }}
+                            </a>
+                            
+                            <!-- Dropdown (Hover) -->
+                            <div class="absolute right-0 top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <div class="glass-panel rounded-xl shadow-2xl py-2 w-48 border border-slate-700">
+                                    <div class="px-4 py-2 border-b border-slate-700/50 mb-1">
+                                        <p class="text-sm font-medium text-white truncate">{{ current_user.name }}</p>
+                                        <p class="text-xs text-slate-400 truncate">{{ current_user.email }}</p>
+                                    </div>
+                                    <a href="/profile" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"><i class="fa-solid fa-user-gear w-5"></i> Settings</a>
+                                    <a href="/logout" class="block px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"><i class="fa-solid fa-arrow-right-from-bracket w-5"></i> Sign Out</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="/login" class="text-sm font-medium text-slate-300 hover:text-white transition-colors">Log in</a>
+                        <a href="/register" class="text-sm font-medium bg-white text-slate-900 px-4 py-2 rounded-full hover:bg-slate-200 transition-colors">Get Started</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        Swal.fire({
+                            text: "{{ message }}",
+                            icon: "{{ 'error' if 'error' in category else 'success' if 'success' in category else 'info' }}",
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000,
+                            timerProgressBar: true,
+                            background: 'rgba(30, 41, 59, 0.9)',
+                            color: '#fff',
+                            customClass: { popup: 'glass-panel border-slate-700' }
+                        });
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+
+    <main class="flex-grow flex flex-col pt-16 relative z-10">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

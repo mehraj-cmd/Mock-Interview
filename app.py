@@ -216,27 +216,10 @@ def process_resume():
             user_row.get('custom_api_key', '')
         )
 
-    prompt = f"""
-    Analyze the following resume text and extract the applicant's skills, project names, and technologies.
-    Return the result strictly as a JSON object with this exact structure:
-    {{
-        "skills": ["skill 1", "skill 2"],
-        "projects": ["project A", "project B"],
-        "technologies": ["tech 1", "tech 2"]
-    }}
-    Resume Text:
-    {resume_text}
-    """
-    try:
-        extracted_data = generate_ai_completion(prompt, json_mode=True, api_key=user_api_key)
-        if not isinstance(extracted_data, dict):
-            extracted_data = {"skills": [], "projects": [], "technologies": []}
-        session['resume_data'] = extracted_data
-        return redirect(url_for('setup_interview'))
-    except Exception as e:
-        flash(f"Error processing resume with AI: {str(e)}")
-        print(f"Error: {str(e)}")
-        return redirect(url_for('resume_page'))
+    # Make it incredibly fast by skipping the AI extraction here.
+    # We will pass the raw resume_text directly to the question generator later.
+    session['resume_data'] = resume_text
+    return redirect(url_for('setup_interview'))
 
 
 @app.route('/setup_interview')
@@ -293,8 +276,8 @@ def generate_questions():
     Generate a list of exactly 5 to 8 interview questions for a candidate applying for a {role} role.
     The interview type is {interview_type}.
 
-    Here is the candidate's extracted resume data:
-    {json.dumps(resume_data, indent=2)}
+    Here is the candidate's full resume text:
+    {resume_data}
 
     QUESTION GENERATION GUIDELINES (Refer to Part 2 & Part 3 of the Master Reference Doc below):
     1. Replicate the style, tone, and difficulty of questions in PART 2 (INTERVIEW QUESTION REFERENCE) for {role}.
