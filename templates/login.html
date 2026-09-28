@@ -1,60 +1,79 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MockMaster AI — Sign In</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .auth-footer { margin-top: 24px; font-size: 14px; color: var(--text-muted); }
-        .auth-footer a { color: var(--primary-light); text-decoration: none; font-weight: 600; }
-        .auth-footer a:hover { text-decoration: underline; }
-        .brand-hero { margin-bottom: 32px; }
-        .brand-hero .logo-big { font-size: 40px; margin-bottom: 8px; }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎯</div>
-            MockMaster AI
-        </a>
-        <span class="navbar-tag">Beta</span>
-    </nav>
+{% extends "base.html" %}
+{% set hide_nav = true %}
+{% block title %}Sign In | MockMaster AI{% endblock %}
 
-    <div class="page-wrapper">
-        <div class="container">
+{% block content %}
+<div class="flex-grow flex items-center justify-center min-h-screen p-4 sm:p-8">
+    <div class="glass-panel w-full max-w-5xl rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl border border-slate-700/50">
+        
+        <!-- Left Side: Branding/Hero -->
+        <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-between bg-gradient-to-br from-brand-900/40 to-slate-900/80 border-r border-slate-700/30 relative overflow-hidden hidden md:flex">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+            <div class="relative z-10">
+                <a href="/" class="flex items-center gap-3 group inline-flex mb-12">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-bullseye text-white text-lg"></i>
+                    </div>
+                    <span class="font-heading font-bold text-2xl tracking-tight text-white">MockMaster<span class="text-brand-400">.ai</span></span>
+                </a>
+                
+                <h1 class="text-4xl md:text-5xl font-heading font-extrabold text-white leading-tight mb-6">
+                    Welcome back,<br><span class="gradient-text">future hire.</span>
+                </h1>
+                <p class="text-slate-300 text-lg leading-relaxed">
+                    Log in to track your progress, review past interview reports, and continue mastering your skills.
+                </p>
+            </div>
+        </div>
 
-            <div class="brand-hero">
-                <div class="logo-big">👋</div>
-                <h1>Welcome Back</h1>
-                <p class="subtitle">Sign in to continue your interview preparation journey.</p>
+        <!-- Right Side: Form -->
+        <div class="w-full md:w-1/2 p-8 md:p-16 bg-slate-900/60 backdrop-blur-xl flex flex-col justify-center">
+            
+            <!-- Mobile Header (Visible only on small screens) -->
+            <div class="md:hidden flex flex-col items-center mb-8">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center shadow-lg mb-4">
+                    <i class="fa-solid fa-bullseye text-white text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-heading font-bold text-white text-center">Welcome back</h2>
             </div>
 
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="flash-message">⚠️ {{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            <div class="max-w-md mx-auto w-full">
+                <h2 class="hidden md:block text-2xl font-heading font-bold text-white mb-2">Sign in</h2>
+                <p class="hidden md:block text-slate-400 text-sm mb-8">Enter your details below to continue.</p>
 
-            <form action="/login" method="POST">
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="john@example.com" required autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Your password" required>
-                </div>
-                <button type="submit" style="width:100%;">Sign In →</button>
-            </form>
+                <form action="/login" method="POST" class="space-y-5">
+                    
+                    <div class="space-y-1.5">
+                        <label for="email" class="block text-sm font-medium text-slate-300">Email Address</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-regular fa-envelope text-slate-500"></i>
+                            </div>
+                            <input type="email" id="email" name="email" required class="glass-input block w-full pl-10 pr-3 py-2.5 rounded-lg sm:text-sm" placeholder="john@example.com">
+                        </div>
+                    </div>
 
-            <div class="auth-footer">
-                Don't have an account? <a href="/register">Create one free</a>
+                    <div class="space-y-1.5">
+                        <label for="password" class="block text-sm font-medium text-slate-300">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-lock text-slate-500"></i>
+                            </div>
+                            <input type="password" id="password" name="password" required class="glass-input block w-full pl-10 pr-3 py-2.5 rounded-lg sm:text-sm" placeholder="••••••••">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="gradient-btn w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 focus:ring-offset-slate-900 mt-6">
+                        Sign In <i class="fa-solid fa-arrow-right ml-2 mt-1"></i>
+                    </button>
+                </form>
+
+                <p class="mt-8 text-center text-sm text-slate-400">
+                    Don't have an account? 
+                    <a href="/register" class="font-semibold text-brand-400 hover:text-brand-300 transition-colors">Create one for free</a>
+                </p>
             </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

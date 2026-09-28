@@ -34,6 +34,11 @@ def grade_answer(question, answer, role, interview_type, api_key=None):
     try:
         with open(ref_path, 'r', encoding='utf-8') as f:
             master_ref_text = f.read()
+            # Optimize prompt size: Keep Part 1 (Rubric) and Part 3 (Examples), strip out Part 2 (Question Generation)
+            if "## PART 2" in master_ref_text and "## PART 3" in master_ref_text:
+                part1 = master_ref_text.split("## PART 2")[0]
+                part3 = "## PART 3" + master_ref_text.split("## PART 3")[1]
+                master_ref_text = part1 + "\n\n" + part3
     except FileNotFoundError:
         master_ref_text = "Standard professional grading."
 

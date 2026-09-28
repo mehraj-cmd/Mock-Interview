@@ -27,21 +27,21 @@ def clean_json_string(text: str) -> str:
     return text
 
 def get_api_keys(custom_key: str = None):
-    """Returns valid (gemini_key, grok_key) tuples or None for unconfigured keys."""
+    """Returns valid (gemini_key, groq_key) tuples or None for unconfigured keys."""
     gemini_key = (custom_key or os.environ.get("GEMINI_API_KEY", "") or "").strip()
     if gemini_key.lower() in INVALID_KEY_PLACEHOLDERS:
         gemini_key = None
 
-    grok_key = (os.environ.get("GROK_API_KEY") or os.environ.get("XAI_API_KEY") or "").strip()
-    if grok_key.lower() in INVALID_KEY_PLACEHOLDERS:
-        grok_key = None
+    groq_key = (os.environ.get("GROQ_API_KEY") or os.environ.get("GROK_API_KEY") or "").strip()
+    if groq_key.lower() in INVALID_KEY_PLACEHOLDERS:
+        groq_key = None
 
-    return gemini_key, grok_key
+    return gemini_key, groq_key
 
 def has_valid_api_key(custom_key: str = None) -> bool:
-    """Check if at least one AI API key (Gemini or Grok) is configured."""
-    gemini_key, grok_key = get_api_keys(custom_key=custom_key)
-    return bool(gemini_key or grok_key)
+    """Check if at least one AI API key (Gemini or Groq) is configured."""
+    gemini_key, groq_key = get_api_keys(custom_key=custom_key)
+    return bool(gemini_key or groq_key)
 
 def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None, temperature: float = 0.7) -> str:
     """Calls Gemini API via official google-genai SDK with model fallback."""
@@ -58,33 +58,39 @@ def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None, temper
         temperature=temperature
     )
 
-    models_to_try = ['gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-flash-latest']
+    models_to_try = ['gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest']
     last_error = None
 
+    import time
     for model in models_to_try:
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=config
-            )
-            if response and response.text:
-                return response.text
-        except Exception as e:
-            last_error = e
-            print(f"[AI Client] Gemini model '{model}' failed: {e}")
-            continue
+        attempts = 0
+        while attempts < 1: # Only 1 attempt per model, no retries to ensure instant failover
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=config
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                last_error = e
+                err_str = str(e)
+                print(f"[AI Client] Gemini model '{model}' failed: {err_str}")
+                break # Instantly break and try the next model instead of sleeping
+
+        # If all 4 models fail instantly, it takes ~1-2 seconds total before hitting Groq
 
     raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
 
-def call_grok(prompt: str, json_mode: bool = True) -> str:
-    """Calls Grok (xAI) API via OpenAI-compatible endpoint with model fallback."""
-    _, grok_key = get_api_keys()
-    if not grok_key:
-        raise ValueError("Grok (xAI) API key is not configured or invalid.")
+def call_groq(prompt: str, json_mode: bool = True) -> str:
+    """Calls Groq API via OpenAI-compatible endpoint with model fallback."""
+    _, groq_key = get_api_keys()
+    if not groq_key:
+        raise ValueError("Groq API key is not configured or invalid.")
 
     headers = {
-        "Authorization": f"Bearer {grok_key}",
+        "Authorization": f"Bearer {groq_key}",
         "Content-Type": "application/json"
     }
 
@@ -92,7 +98,7 @@ def call_grok(prompt: str, json_mode: bool = True) -> str:
     if json_mode:
         system_prompt += " You MUST respond ONLY with a valid JSON object or JSON array without markdown wrapping or commentary."
 
-    models_to_try = ["grok-2-latest", "grok-beta", "grok-2-1212"]
+    models_to_try = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b", "openai/gpt-oss-120b", "allam-2-7b"]
     last_error = None
 
     for model in models_to_try:
@@ -104,9 +110,12 @@ def call_grok(prompt: str, json_mode: bool = True) -> str:
             ],
             "temperature": 0.7
         }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+            
         try:
             response = requests.post(
-                "https://api.x.ai/v1/chat/completions",
+                "https://api.groq.com/openai/v1/chat/completions",
                 headers=headers,
                 json=payload,
                 timeout=30
@@ -117,56 +126,61 @@ def call_grok(prompt: str, json_mode: bool = True) -> str:
                 if content:
                     return content
             else:
-                print(f"[AI Client] Grok model '{model}' HTTP {response.status_code}: {response.text}")
-                last_error = f"HTTP {response.status_code}: {response.text}"
+                err_text = response.text.encode('ascii', 'replace').decode('ascii')
+                print(f"[AI Client] Groq model '{model}' HTTP {response.status_code}: {err_text}")
+                last_error = f"HTTP {response.status_code}: {err_text}"
+                if response.status_code == 400 and "response_format" in response.text:
+                    # Retry without JSON mode if not supported by the model
+                    payload.pop("response_format", None)
+                    res2 = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=30)
+                    if res2.status_code == 200:
+                        return res2.json()["choices"][0]["message"]["content"]
         except Exception as e:
             last_error = e
-            print(f"[AI Client] Grok request failed for model '{model}': {e}")
+            print(f"[AI Client] Groq request failed for model '{model}': {e}")
             continue
 
-    raise RuntimeError(f"All Grok models failed. Last error: {last_error}")
+    raise RuntimeError(f"All Groq models failed. Last error: {last_error}")
 
 def generate_ai_completion(prompt: str, json_mode: bool = True, api_key: str = None, temperature: float = 0.7):
     """
     Executes AI completion with automatic failover:
     1. Primary: Gemini (if configured or passed via api_key)
-    2. Failover: Grok / xAI (if configured)
-    If primary fails or key is missing, automatically falls back to secondary.
-    Returns parsed JSON if json_mode=True, else returns raw string.
+    2. Failover: Groq (if configured)
     """
     load_dotenv(override=True)
-    gemini_key, grok_key = get_api_keys(custom_key=api_key)
+    gemini_key, groq_key = get_api_keys(custom_key=api_key)
 
-    if not gemini_key and not grok_key:
-        raise ValueError("No valid API key configured. Please set GEMINI_API_KEY or GROK_API_KEY in your .env file.")
+    if not gemini_key and not groq_key:
+        raise ValueError("No valid API key configured. Please set GEMINI_API_KEY or GROQ_API_KEY in your .env file.")
 
     attempt_errors = []
 
-    # Attempt 1: Gemini
+    # Attempt 1: Groq (Blazing fast LPU inference, prioritize if key exists)
+    if groq_key:
+        try:
+            print("[AI Client] Requesting completion from Groq (Primary)...")
+            raw_text = call_groq(prompt, json_mode=json_mode)
+            if json_mode:
+                return json.loads(clean_json_string(raw_text))
+            return raw_text
+        except Exception as e:
+            msg = f"Groq error: {e}"
+            print(f"[AI Client] {msg}")
+            attempt_errors.append(msg)
+            if gemini_key:
+                print("[AI Client] Failing over to Gemini...")
+
+    # Attempt 2: Gemini
     if gemini_key:
         try:
-            print("[AI Client] Requesting completion from Gemini...")
+            print("[AI Client] Requesting completion from Gemini (Secondary)...")
             raw_text = call_gemini(prompt, json_mode=json_mode, api_key=gemini_key, temperature=temperature)
             if json_mode:
                 return json.loads(clean_json_string(raw_text))
             return raw_text
         except Exception as e:
             msg = f"Gemini error: {e}"
-            print(f"[AI Client] {msg}")
-            attempt_errors.append(msg)
-            if grok_key:
-                print("[AI Client] Failing over to Grok (xAI)...")
-
-    # Attempt 2: Grok / xAI (if key present)
-    if grok_key:
-        try:
-            print("[AI Client] Requesting completion from Grok...")
-            raw_text = call_grok(prompt, json_mode=json_mode)
-            if json_mode:
-                return json.loads(clean_json_string(raw_text))
-            return raw_text
-        except Exception as e:
-            msg = f"Grok error: {e}"
             print(f"[AI Client] {msg}")
             attempt_errors.append(msg)
 

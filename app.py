@@ -216,27 +216,10 @@ def process_resume():
             user_row.get('custom_api_key', '')
         )
 
-    prompt = f"""
-    Analyze the following resume text and extract the applicant's skills, project names, and technologies.
-    Return the result strictly as a JSON object with this exact structure:
-    {{
-        "skills": ["skill 1", "skill 2"],
-        "projects": ["project A", "project B"],
-        "technologies": ["tech 1", "tech 2"]
-    }}
-    Resume Text:
-    {resume_text}
-    """
-    try:
-        extracted_data = generate_ai_completion(prompt, json_mode=True, api_key=user_api_key)
-        if not isinstance(extracted_data, dict):
-            extracted_data = {"skills": [], "projects": [], "technologies": []}
-        session['resume_data'] = extracted_data
-        return redirect(url_for('setup_interview'))
-    except Exception as e:
-        flash(f"Error processing resume with AI: {str(e)}")
-        print(f"Error: {str(e)}")
-        return redirect(url_for('resume_page'))
+    # Make it incredibly fast by skipping the AI extraction here.
+    # We will pass the raw resume_text directly to the question generator later.
+    session['resume_data'] = resume_text
+    return redirect(url_for('setup_interview'))
 
 
 @app.route('/setup_interview')
@@ -285,6 +268,13 @@ def generate_questions():
     try:
         with open(ref_path, 'r', encoding='utf-8') as f:
             master_ref_text = f.read()
+            # Massively speed up generation and avoid rate limits by ONLY using Part 2
+            if "## PART 2" in master_ref_text:
+                part2_onward = "## PART 2" + master_ref_text.split("## PART 2", 1)[1]
+                if "## PART 3" in part2_onward:
+                    master_ref_text = part2_onward.split("## PART 3", 1)[0]
+                else:
+                    master_ref_text = part2_onward
     except FileNotFoundError:
         master_ref_text = ""
 
@@ -293,28 +283,33 @@ def generate_questions():
     Generate a list of exactly 5 to 8 interview questions for a candidate applying for a {role} role.
     The interview type is {interview_type}.
 
-    Here is the candidate's extracted resume data:
-    {json.dumps(resume_data, indent=2)}
+    Here is the candidate's full resume text:
+    {resume_data}
 
-    QUESTION GENERATION GUIDELINES (Refer to Part 2 & Part 3 of the Master Reference Doc below):
+    QUESTION GENERATION GUIDELINES:
     1. Replicate the style, tone, and difficulty of questions in PART 2 (INTERVIEW QUESTION REFERENCE) for {role}.
-    2. Follow the principles in Part 2, Part A:
-       - Specific enough to test real understanding, not just memory.
-       - Tied to what the candidate actually claims in their resume (ask candidates to explain listed projects from scratch or rate their familiarity with tools/technologies listed).
-       - Layered with natural follow-ups where appropriate.
-       - Balanced mix across: Technical/knowledge questions, Problem-solving questions, and Behavioral questions.
-    3. Use PART 3 (RESUME -> QUESTION EXAMPLES) as few-shot examples of how to craft resume-tied questions that probe deeply into specific projects, metrics, and technical decisions.
+    2. Specific enough to test real understanding, not just memory.
+    3. Tied to what the candidate actually claims in their resume (ask candidates to explain listed projects from scratch or rate their familiarity with tools/technologies listed).
     4. Generate NEW questions in a similar authentic style tailored specifically to the candidate's resume, rather than copying fixed questions directly.
 
-    Return the result STRICTLY as a JSON array of strings. 
-    Example format: ["Walk me through how you built project X?", "How would you handle scenario Y?"]
+    Return the result STRICTLY as a JSON object containing a single key "questions" which is an array of strings. 
+    Example format: {{ "questions": ["Walk me through how you built project X?", "How would you handle scenario Y?"] }}
 
     <MASTER_REFERENCE_DOC>
     {master_ref_text}
     </MASTER_REFERENCE_DOC>
     """
     try:
-        questions = generate_ai_completion(prompt, json_mode=True, api_key=user_api_key)
+        response_data = generate_ai_completion(prompt, json_mode=True, api_key=user_api_key)
+        
+        # Handle both the new object format and fallback array format
+        if isinstance(response_data, dict) and 'questions' in response_data:
+            questions = response_data['questions']
+        elif isinstance(response_data, list):
+            questions = response_data
+        else:
+            questions = [str(response_data)]
+            
         if not isinstance(questions, list):
             questions = [str(questions)]
         
@@ -431,15 +426,33 @@ def process_grades():
         return redirect(url_for('resume_page'))
         
     from grader import grade_answer
+    import concurrent.futures
     user_api_key = current_user.custom_api_key if current_user.is_authenticated else None
 
-    for qa in qa_list:
-        # Grade only if not already graded
-        if qa['score'] == 0 and not qa['feedback']:
+    # Filter out already graded answers to save API calls
+    ungraded_qas = [qa for qa in qa_list if qa['score'] == 0 and not qa['feedback']]
+    
+    if ungraded_qas:
+        def _grade_single(qa):
             grade = grade_answer(qa['question'], qa['answer'], role, interview_type, user_api_key)
+            return qa['q_index'], grade
+
+        # Grade all answers in parallel!
+        results_to_save = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(_grade_single, qa) for qa in ungraded_qas]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    q_index, grade = future.result()
+                    results_to_save.append((q_index, grade))
+                except Exception as e:
+                    print(f"Error grading in parallel: {e}")
+
+        # Save to database sequentially to prevent SQLite 'database is locked' errors
+        for q_index, grade in results_to_save:
             db.update_qa_grade(
                 session_id=db_session_id,
-                q_index=qa['q_index'],
+                q_index=q_index,
                 score=grade.get('score_out_of_10', grade.get('score', 0) * 2),
                 feedback=grade.get('feedback', ''),
                 improvement_tip=grade.get('improvement_tip', '')

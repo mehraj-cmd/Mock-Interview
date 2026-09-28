@@ -1,103 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MockMaster AI — Report Card</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">
-            <div class="logo-icon">🎯</div>
-            MockMaster AI
-        </a>
-        <span class="navbar-tag">Report</span>
-    </nav>
+{% extends "base.html" %}
+{% block title %}Interview Report | MockMaster AI{% endblock %}
 
-    <div class="page-wrapper" style="align-items: flex-start;">
-        <div class="report-container">
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+    
+    <!-- Header / Final Score -->
+    <div class="glass-panel rounded-3xl p-8 border border-slate-700/50 mb-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+        
+        <!-- Background Glow based on score -->
+        {% if overall_score >= 8.0 %}
+            <div class="absolute inset-0 bg-emerald-500/10 mix-blend-screen pointer-events-none"></div>
+            <div class="absolute -right-20 -top-20 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+        {% elif overall_score >= 5.0 %}
+            <div class="absolute inset-0 bg-amber-500/10 mix-blend-screen pointer-events-none"></div>
+            <div class="absolute -right-20 -top-20 w-64 h-64 bg-amber-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+        {% else %}
+            <div class="absolute inset-0 bg-red-500/10 mix-blend-screen pointer-events-none"></div>
+            <div class="absolute -right-20 -top-20 w-64 h-64 bg-red-500/20 rounded-full blur-[80px] pointer-events-none"></div>
+        {% endif %}
+
+        <div class="relative z-10 text-center md:text-left flex-1">
+            <h1 class="text-3xl md:text-4xl font-heading font-extrabold text-white mb-2">Performance Report</h1>
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm text-slate-300">
+                <span class="bg-slate-800 px-3 py-1 rounded-full border border-slate-700"><i class="fa-solid fa-briefcase text-brand-400 mr-2"></i>{{ role }}</span>
+                <span class="bg-slate-800 px-3 py-1 rounded-full border border-slate-700"><i class="fa-solid fa-layer-group text-purple-400 mr-2"></i>{{ interview_type }}</span>
+            </div>
+        </div>
+
+        <div class="relative z-10 flex flex-col items-center">
+            <div class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-3">Overall Score</div>
             
-            <!-- Step Indicator -->
-            <div class="step-indicator">
-                <div class="step-dot completed">✓</div>
-                <div class="step-line completed"></div>
-                <div class="step-dot completed">✓</div>
-                <div class="step-line completed"></div>
-                <div class="step-dot completed">✓</div>
-                <div class="step-line completed"></div>
-                <div class="step-dot active">4</div>
+            <div class="relative w-40 h-40 flex items-center justify-center">
+                <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <!-- Background circle -->
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" class="text-slate-800"></circle>
+                    <!-- Progress circle -->
+                    {% set dash_offset = 283 - (283 * (overall_score / 10)) %}
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="{{ dash_offset }}" stroke-linecap="round" 
+                        class="{% if overall_score >= 8.0 %}text-emerald-500{% elif overall_score >= 5.0 %}text-amber-500{% else %}text-red-500{% endif %} transition-all duration-1000 ease-out shadow-lg"></circle>
+                </svg>
+                <div class="absolute flex flex-col items-center justify-center">
+                    <span class="text-4xl font-black text-white">{{ overall_score }}<span class="text-xl text-slate-500">/10</span></span>
+                </div>
             </div>
 
-            <h1 style="text-align: center; margin-bottom: 4px;">📊 Interview Report Card</h1>
-            <p class="subtitle" style="text-align: center;">Here's how you performed — review the AI feedback to sharpen your skills.</p>
-
-            <!-- Score Box -->
-            <div class="score-box">
-                <div class="score-label">Overall Score</div>
-                <div class="score-value">{{ overall_score }} <span class="score-max">/ 10</span></div>
-                
-                {% if overall_score >= 8.5 %}
-                    <div class="verdict-badge verdict-strong-hire">Strong Hire</div>
-                {% elif overall_score >= 7.0 %}
-                    <div class="verdict-badge verdict-hire">Hire</div>
+            <div class="mt-4">
+                {% if overall_score >= 8.0 %}
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <i class="fa-solid fa-star mr-2"></i> Strong Hire
+                    </span>
                 {% elif overall_score >= 5.0 %}
-                    <div class="verdict-badge verdict-reservations">Needs Improvement</div>
-                {% elif overall_score >= 3.0 %}
-                    <div class="verdict-badge verdict-weak">Weak — Likely No Hire</div>
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                        <i class="fa-solid fa-arrow-up-right-dots mr-2"></i> Potential Hire
+                    </span>
                 {% else %}
-                    <div class="verdict-badge verdict-no-hire">No Hire</div>
+                    <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                        <i class="fa-solid fa-xmark mr-2"></i> No Hire (Needs Practice)
+                    </span>
                 {% endif %}
             </div>
+        </div>
+    </div>
 
-            <!-- Meta Info -->
-            <div class="meta-row">
-                <div class="meta-info">
-                    <div class="meta-label">Interview Type</div>
-                    <div class="meta-value">{{ interview_type }}</div>
-                </div>
-                <div class="meta-info">
-                    <div class="meta-label">Target Role</div>
-                    <div class="meta-value">{{ role }}</div>
-                </div>
-                <div class="meta-info">
-                    <div class="meta-label">Questions Answered</div>
-                    <div class="meta-value">{{ qa_list | length }}</div>
-                </div>
-            </div>
-
-            <!-- Q&A Breakdown -->
-            <h3 class="section-title">Question-by-Question Breakdown</h3>
+    <!-- Detailed Q&A Breakdown -->
+    <h3 class="text-xl font-heading font-bold text-white mb-6 flex items-center">
+        <i class="fa-solid fa-list-check text-brand-400 mr-3"></i> Detailed Feedback Breakdown
+    </h3>
+    
+    <div class="space-y-6">
+        {% for qa in qa_list %}
+        <div class="glass-panel rounded-2xl border border-slate-700/50 overflow-hidden">
             
-            {% for qa in qa_list %}
-            <div class="qa-card">
-                <div class="qa-header">
-                    <div class="qa-question">
-                        <span class="q-num">Q{{ loop.index }}.</span> {{ qa.question }}
-                    </div>
-                    <div class="qa-score-badge">{{ qa.score }} / 10</div>
+            <!-- Question Header -->
+            <div class="bg-slate-800/80 p-5 md:p-6 border-b border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Question {{ loop.index }}</span>
+                    <h4 class="text-lg font-medium text-white">{{ qa.question }}</h4>
                 </div>
-                
-                <div class="qa-section-label">Your Answer</div>
-                <div class="qa-answer">{{ qa.answer }}</div>
-                
-                <div class="qa-section-label">AI Feedback</div>
-                <div class="qa-feedback">{{ qa.feedback }}</div>
-                
-                <div class="qa-section-label">How to Improve</div>
-                <div class="qa-tip"><span class="tip-icon">💡</span> {{ qa.tip }}</div>
+                <div class="flex flex-col items-end shrink-0">
+                    <div class="text-2xl font-black {% if qa.score >= 8 %}text-emerald-400{% elif qa.score >= 5 %}text-amber-400{% else %}text-red-400{% endif %}">
+                        {{ qa.score }}<span class="text-sm font-normal text-slate-500">/10</span>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
 
-            <!-- Bottom Actions -->
-            <div style="text-align: center; margin-top: 36px;">
-                <a href="{{ url_for('home') }}" class="btn" style="text-decoration: none; display: inline-block;">
-                    🔄 Start a New Interview
-                </a>
+            <!-- Content Area -->
+            <div class="p-0 flex flex-col md:flex-row">
+                <!-- Answer (Left) -->
+                <div class="p-5 md:p-6 md:w-1/2 border-b md:border-b-0 md:border-r border-slate-700/50">
+                    <div class="flex items-center gap-2 mb-3">
+                        <i class="fa-solid fa-comment-dots text-brand-400"></i>
+                        <span class="text-sm font-semibold text-white">Your Answer</span>
+                    </div>
+                    <div class="bg-slate-900/50 rounded-xl p-4 text-slate-300 text-sm leading-relaxed min-h-[100px] border border-slate-800 font-mono overflow-y-auto" style="max-height: 250px;">
+                        {% if qa.answer %}
+                            {{ qa.answer }}
+                        {% else %}
+                            <span class="text-slate-500 italic">No answer provided.</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Feedback (Right) -->
+                <div class="p-5 md:p-6 md:w-1/2 bg-slate-800/20">
+                    <!-- Main Feedback -->
+                    <div class="mb-5">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-clipboard-check {% if qa.score >= 8 %}text-emerald-400{% elif qa.score >= 5 %}text-amber-400{% else %}text-red-400{% endif %}"></i>
+                            <span class="text-sm font-semibold text-white">AI Feedback</span>
+                        </div>
+                        <p class="text-sm text-slate-300 leading-relaxed">{{ qa.feedback }}</p>
+                    </div>
+
+                    <!-- Improvement Tip -->
+                    <div class="bg-brand-900/20 border border-brand-500/20 rounded-xl p-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-lightbulb text-brand-400 mt-0.5"></i>
+                            <div>
+                                <span class="text-sm font-semibold text-brand-300 block mb-1">How to improve</span>
+                                <p class="text-sm text-brand-200/80 leading-relaxed">{{ qa.tip }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
+        {% endfor %}
     </div>
-</body>
-</html>
+
+    <!-- Actions -->
+    <div class="mt-12 flex justify-center gap-4">
+        <a href="/dashboard" class="px-6 py-3 rounded-xl text-sm font-medium text-white bg-slate-800 border border-slate-700 hover:bg-slate-700 transition-colors">
+            Back to Dashboard
+        </a>
+        <a href="/resume" class="gradient-btn px-8 py-3 rounded-xl text-sm font-bold text-white shadow-lg flex items-center gap-2">
+            Try Another Interview <i class="fa-solid fa-rotate-right"></i>
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if overall_score >= 8.0 %}
+<!-- Add a little celebration for high scores -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var duration = 3 * 1000;
+        var animationEnd = Date.now() + duration;
+        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 100 };
+
+        function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        var interval = setInterval(function() {
+            var timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            var particleCount = 50 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 250);
+    });
+</script>
+{% endif %}
+{% endblock %}
