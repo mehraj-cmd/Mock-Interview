@@ -426,15 +426,33 @@ def process_grades():
         return redirect(url_for('resume_page'))
         
     from grader import grade_answer
+    import concurrent.futures
     user_api_key = current_user.custom_api_key if current_user.is_authenticated else None
 
-    for qa in qa_list:
-        # Grade only if not already graded
-        if qa['score'] == 0 and not qa['feedback']:
+    # Filter out already graded answers to save API calls
+    ungraded_qas = [qa for qa in qa_list if qa['score'] == 0 and not qa['feedback']]
+    
+    if ungraded_qas:
+        def _grade_single(qa):
             grade = grade_answer(qa['question'], qa['answer'], role, interview_type, user_api_key)
+            return qa['q_index'], grade
+
+        # Grade all answers in parallel!
+        results_to_save = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(_grade_single, qa) for qa in ungraded_qas]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    q_index, grade = future.result()
+                    results_to_save.append((q_index, grade))
+                except Exception as e:
+                    print(f"Error grading in parallel: {e}")
+
+        # Save to database sequentially to prevent SQLite 'database is locked' errors
+        for q_index, grade in results_to_save:
             db.update_qa_grade(
                 session_id=db_session_id,
-                q_index=qa['q_index'],
+                q_index=q_index,
                 score=grade.get('score', 0),
                 feedback=grade.get('feedback', ''),
                 improvement_tip=grade.get('improvement_tip', '')
