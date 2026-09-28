@@ -57,22 +57,36 @@ def call_gemini(prompt: str, json_mode: bool = True, api_key: str = None) -> str
         response_mime_type="application/json" if json_mode else "text/plain"
     )
 
-    models_to_try = ['gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-flash-latest']
+    models_to_try = ['gemini-1.5-flash-8b', 'gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro']
     last_error = None
 
+    import time
     for model in models_to_try:
-        try:
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=config
-            )
-            if response and response.text:
-                return response.text
-        except Exception as e:
-            last_error = e
-            print(f"[AI Client] Gemini model '{model}' failed: {e}")
-            continue
+        attempts = 0
+        while attempts < 3: # Try each model up to 3 times
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=prompt,
+                    config=config
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                last_error = e
+                err_str = str(e)
+                print(f"[AI Client] Gemini model '{model}' failed (Attempt {attempts+1}): {err_str}")
+                
+                # If it's a 503 Overloaded or 429 Too Many Requests, wait and retry
+                if "503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str or "exhausted" in err_str.lower():
+                    attempts += 1
+                    time.sleep(3) # Wait 3 seconds before retrying
+                    continue
+                else:
+                    # If it's a 400 or 404 (invalid model, auth issue, etc), break and try the next model immediately
+                    break
+        
+        # If we broke out or exhausted attempts, the loop naturally continues to the next model
 
     raise RuntimeError(f"All Gemini models failed. Last error: {last_error}")
 
