@@ -268,6 +268,13 @@ def generate_questions():
     try:
         with open(ref_path, 'r', encoding='utf-8') as f:
             master_ref_text = f.read()
+            # Massively speed up generation and avoid rate limits by ONLY using Part 2
+            if "## PART 2" in master_ref_text:
+                part2_onward = "## PART 2" + master_ref_text.split("## PART 2", 1)[1]
+                if "## PART 3" in part2_onward:
+                    master_ref_text = part2_onward.split("## PART 3", 1)[0]
+                else:
+                    master_ref_text = part2_onward
     except FileNotFoundError:
         master_ref_text = ""
 
@@ -279,14 +286,10 @@ def generate_questions():
     Here is the candidate's full resume text:
     {resume_data}
 
-    QUESTION GENERATION GUIDELINES (Refer to Part 2 & Part 3 of the Master Reference Doc below):
+    QUESTION GENERATION GUIDELINES:
     1. Replicate the style, tone, and difficulty of questions in PART 2 (INTERVIEW QUESTION REFERENCE) for {role}.
-    2. Follow the principles in Part 2, Part A:
-       - Specific enough to test real understanding, not just memory.
-       - Tied to what the candidate actually claims in their resume (ask candidates to explain listed projects from scratch or rate their familiarity with tools/technologies listed).
-       - Layered with natural follow-ups where appropriate.
-       - Balanced mix across: Technical/knowledge questions, Problem-solving questions, and Behavioral questions.
-    3. Use PART 3 (RESUME -> QUESTION EXAMPLES) as few-shot examples of how to craft resume-tied questions that probe deeply into specific projects, metrics, and technical decisions.
+    2. Specific enough to test real understanding, not just memory.
+    3. Tied to what the candidate actually claims in their resume (ask candidates to explain listed projects from scratch or rate their familiarity with tools/technologies listed).
     4. Generate NEW questions in a similar authentic style tailored specifically to the candidate's resume, rather than copying fixed questions directly.
 
     Return the result STRICTLY as a JSON array of strings. 
