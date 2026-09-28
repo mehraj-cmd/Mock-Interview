@@ -88,12 +88,15 @@
 
                 <div class="space-y-2">
                     <label for="role" class="block text-sm font-medium text-slate-300">Specific Role</label>
-                    <!-- Changed to a text input with datalist so default_role works easily, or we can use the old JS approach. Let's use an input with datalist for better UX and allowing custom roles. -->
                     <div class="relative">
-                        <input type="text" name="role" id="role" list="role-options" required value="{{ default_role }}" placeholder="e.g. Frontend Developer" class="glass-input block w-full px-4 py-3 rounded-xl sm:text-sm">
-                        <datalist id="role-options">
-                            <!-- Populated by JS -->
-                        </datalist>
+                        <select name="role" id="role" required class="glass-input block w-full px-4 py-3 rounded-xl sm:text-sm appearance-none">
+                            {% if default_role %}
+                                <option value="{{ default_role }}" class="bg-slate-800 text-white" selected>{{ default_role }} (Default)</option>
+                            {% else %}
+                                <option value="" disabled selected class="bg-slate-800 text-slate-400">Select category first...</option>
+                            {% endif %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400"><i class="fa-solid fa-chevron-down text-xs"></i></div>
                     </div>
                 </div>
             </div>
@@ -131,19 +134,19 @@
 
     function updateRoles() {
         const categorySelect = document.getElementById("category");
-        const roleDatalist = document.getElementById("role-options");
-        const roleInput = document.getElementById("role");
+        const roleSelect = document.getElementById("role");
         const selectedCategory = categorySelect.value;
         
-        roleDatalist.innerHTML = '';
+        roleSelect.innerHTML = '<option value="" disabled selected class="bg-slate-800 text-slate-400">Select a role...</option>';
         
         if (selectedCategory && rolesData[selectedCategory]) {
             rolesData[selectedCategory].forEach(function(role) {
                 const option = document.createElement("option");
                 option.value = role;
-                roleDatalist.appendChild(option);
+                option.textContent = role;
+                option.className = "bg-slate-800 text-white";
+                roleSelect.appendChild(option);
             });
-            // Don't auto-clear if they have a default, just offer suggestions
         }
     }
 
