@@ -4,3 +4,5 @@ google-genai
 pymupdf
 flask-login
 werkzeug
+requests
+gunicorn
